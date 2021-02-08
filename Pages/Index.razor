@@ -1,0 +1,133 @@
+﻿@page "/"
+
+<div class="container-fluid">
+    <div class="row">
+        <div>Health: @Health</div>
+        &nbsp;|&nbsp;
+        <div>Score: @Score</div>
+    </div>
+</div>
+<div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown @ref="gameFieldDiv">
+    @for (int x = 0; x < 20; x++)
+    {
+        <div class="row">
+            @for (int y = 0; y < 24; y++)
+            {
+                if (PlayerLocation.Item1 == x && PlayerLocation.Item2 == y)
+                {
+                    <span class="player"></span>
+                    continue;
+                }
+
+                @if (@map[x, y] == 1)
+                {
+                    <span class="wall"></span>
+                }
+                else if (@map[x, y] == 2)
+                {
+                    <span class="grass"></span>
+                }
+                else if (@map[x, y] == 4)
+                {
+                    <span class="ladder-down"></span>
+                }
+                else if (@map[x, y] == 5)
+                {
+                    <span class="spider"></span>
+                }
+                else if (@map[x, y] == 6)
+                {
+                    <span class="potion"></span>
+                }
+                else if (@map[x, y] == 7)
+                {
+                    <span class="snake"></span>
+                }
+                else if (@map[x, y] == 8)
+                {
+                    <span class="treasure-chest"></span>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code
+{
+    [Inject]
+    public IJSRuntime JSRuntime { get; set; }
+
+    private KeyboardEventArgs KeyArgs;
+    private Tuple<int, int> PlayerLocation = new Tuple<int, int>(2, 2);
+
+    private int Health = 100;
+    private int Score = 0;
+
+    private int[,] map = new int[20, 24]
+    {
+{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },               
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },                
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1 },                
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1 },      
+{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
+    };
+
+    protected ElementReference gameFieldDiv;
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("SetFocusToElement", gameFieldDiv);
+        }
+    }
+
+    private void KeyDown(KeyboardEventArgs args)
+    {
+        //Console.WriteLine($"Key Pressed: [{args.Key}]");
+
+        if (args.Key == "ArrowUp")
+        {
+            if (map[PlayerLocation.Item1 - 1, PlayerLocation.Item2] != 1)
+            {
+                PlayerLocation = new Tuple<int, int>(PlayerLocation.Item1 - 1, PlayerLocation.Item2);
+            }
+        }
+        else if (args.Key == "ArrowDown")
+        {
+            if (map[PlayerLocation.Item1 + 1, PlayerLocation.Item2] != 1)
+            {
+                PlayerLocation = new Tuple<int, int>(PlayerLocation.Item1 + 1, PlayerLocation.Item2);
+            }
+        }
+        else if (args.Key == "ArrowLeft")
+        {
+            if (map[PlayerLocation.Item1, PlayerLocation.Item2 - 1] != 1)
+            {
+                PlayerLocation = new Tuple<int, int>(PlayerLocation.Item1, PlayerLocation.Item2 - 1);
+            }
+        }
+        else if (args.Key == "ArrowRight")
+        {
+            if (map[PlayerLocation.Item1, PlayerLocation.Item2 + 1] != 1)
+            {
+                PlayerLocation = new Tuple<int, int>(PlayerLocation.Item1, PlayerLocation.Item2 + 1);
+            }
+        }
+    }
+} 
