@@ -1,5 +1,8 @@
 ﻿@page "/"
 
+@using System.Timers
+@using System.Drawing
+
 <div class="container-fluid">
     <div class="row">
         <div>Health: @Health</div>
@@ -8,14 +11,22 @@
     </div>
 </div>
 <div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown @ref="gameFieldDiv">
-    @for (int x = 0; x < 20; x++)
+    @for (int x = 0; x < GAME_FIELD_HEIGHT; x++)
     {
         <div class="row">
-            @for (int y = 0; y < 24; y++)
+            @for (int y = 0; y < GAME_FIELD_WIDTH; y++)
             {
-                if (PlayerLocation.Item1 == x && PlayerLocation.Item2 == y)
+                if (PlayerLocation.X == x && PlayerLocation.Y == y)
                 {
                     <span class="player"></span>
+                    continue;
+                }
+
+                var coin = CoinLocations.FirstOrDefault(p => p.X == x && p.Y == y);
+
+                if (!coin.IsEmpty)
+                {
+                    <span class="coin"></span>
                     continue;
                 }
 
@@ -58,12 +69,22 @@
     public IJSRuntime JSRuntime { get; set; }
 
     private KeyboardEventArgs KeyArgs;
-    private Tuple<int, int> PlayerLocation = new Tuple<int, int>(2, 2);
+    private Point PlayerLocation = new Point { X = 2, Y = 2 };
 
     private int Health = 100;
     private int Score = 0;
+    private const int CoinValue = 50;
 
-    private int[,] map = new int[20, 24]
+    private Timer timer;
+    private int TotalNumberOfCoins = 3;
+    private List<Point> CoinLocations = new List<Point>();
+
+    private const int GAME_FIELD_WIDTH = 24;
+    private const int GAME_FIELD_HEIGHT = 20;
+
+    private Random rand = new Random();
+
+    private int[,] map = new int[GAME_FIELD_HEIGHT, GAME_FIELD_WIDTH]
     {
 { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
 { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
@@ -78,16 +99,57 @@
 { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
 { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
 { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },               
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },                
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1 },                
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1 },      
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
 { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
-    };
+                };
 
     protected ElementReference gameFieldDiv;
+
+    protected async override void OnInitialized()
+    {
+        SpawnCoins();
+
+        timer = new Timer(1000);
+        timer.Elapsed += new ElapsedEventHandler(GameLoop);
+        timer.Enabled = true;
+    }
+
+    private Point GetRandomMapPoint()
+    {
+        var h = rand.Next(0, GAME_FIELD_HEIGHT - 1);
+        var w = rand.Next(0, GAME_FIELD_WIDTH - 1);
+
+        if (map[h, w] == 1 || (PlayerLocation.X == h && PlayerLocation.Y == w))
+        {
+            return GetRandomMapPoint();
+        }
+
+        return new Point(h, w);
+    }
+
+    private void SpawnCoins()
+    {
+        if (CoinLocations.Count() < TotalNumberOfCoins)
+        {
+            var numToAdd = TotalNumberOfCoins - CoinLocations.Count();
+
+            for (int i = 0; i < numToAdd; i++)
+            {
+                CoinLocations.Add(GetRandomMapPoint());
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void GameLoop(object source, ElapsedEventArgs e)
+    {
+        SpawnCoins();
+    }
 
     protected async override Task OnAfterRenderAsync(bool firstRender)
     {
@@ -97,36 +159,51 @@
         }
     }
 
+    private void ProcessItemPickup()
+    {
+        var coin = CoinLocations.FirstOrDefault(p => p.X == PlayerLocation.X && p.Y == PlayerLocation.Y);
+
+        if (!coin.IsEmpty)
+        {
+            Score += CoinValue;
+            CoinLocations.Remove(coin);
+        }
+    }
+
     private void KeyDown(KeyboardEventArgs args)
     {
         //Console.WriteLine($"Key Pressed: [{args.Key}]");
 
         if (args.Key == "ArrowUp")
         {
-            if (map[PlayerLocation.Item1 - 1, PlayerLocation.Item2] != 1)
+            if (map[PlayerLocation.X - 1, PlayerLocation.Y] != 1)
             {
-                PlayerLocation = new Tuple<int, int>(PlayerLocation.Item1 - 1, PlayerLocation.Item2);
+                PlayerLocation.X -= 1;
+                ProcessItemPickup();
             }
         }
         else if (args.Key == "ArrowDown")
         {
-            if (map[PlayerLocation.Item1 + 1, PlayerLocation.Item2] != 1)
+            if (map[PlayerLocation.X + 1, PlayerLocation.Y] != 1)
             {
-                PlayerLocation = new Tuple<int, int>(PlayerLocation.Item1 + 1, PlayerLocation.Item2);
+                PlayerLocation.X += 1;
+                ProcessItemPickup();
             }
         }
         else if (args.Key == "ArrowLeft")
         {
-            if (map[PlayerLocation.Item1, PlayerLocation.Item2 - 1] != 1)
+            if (map[PlayerLocation.X, PlayerLocation.Y - 1] != 1)
             {
-                PlayerLocation = new Tuple<int, int>(PlayerLocation.Item1, PlayerLocation.Item2 - 1);
+                PlayerLocation.Y -= 1;
+                ProcessItemPickup();
             }
         }
         else if (args.Key == "ArrowRight")
         {
-            if (map[PlayerLocation.Item1, PlayerLocation.Item2 + 1] != 1)
+            if (map[PlayerLocation.X, PlayerLocation.Y + 1] != 1)
             {
-                PlayerLocation = new Tuple<int, int>(PlayerLocation.Item1, PlayerLocation.Item2 + 1);
+                PlayerLocation.Y += 1;
+                ProcessItemPickup();
             }
         }
     }
