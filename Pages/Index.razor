@@ -13,53 +13,57 @@
 <div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown @ref="gameFieldDiv">
     @for (int x = 0; x < GAME_FIELD_HEIGHT; x++)
     {
-        <div class="row">
-            @for (int y = 0; y < GAME_FIELD_WIDTH; y++)
+    <div class="row">
+        @for (int y = 0; y < GAME_FIELD_WIDTH; y++)
+        {
+            if (PlayerLocation.X == x && PlayerLocation.Y == y)
             {
-                if (PlayerLocation.X == x && PlayerLocation.Y == y)
-                {
-                    <span class="player"></span>
-                    continue;
-                }
-
-                var coin = CoinLocations.FirstOrDefault(p => p.X == x && p.Y == y);
-
-                if (!coin.IsEmpty)
-                {
-                    <span class="coin"></span>
-                    continue;
-                }
-
-                @if (@map[x, y] == 1)
-                {
-                    <span class="wall"></span>
-                }
-                else if (@map[x, y] == 2)
-                {
-                    <span class="grass"></span>
-                }
-                else if (@map[x, y] == 4)
-                {
-                    <span class="ladder-down"></span>
-                }
-                else if (@map[x, y] == 5)
-                {
-                    <span class="spider"></span>
-                }
-                else if (@map[x, y] == 6)
-                {
-                    <span class="potion"></span>
-                }
-                else if (@map[x, y] == 7)
-                {
-                    <span class="snake"></span>
-                }
-                else if (@map[x, y] == 8)
-                {
-                    <span class="treasure-chest"></span>
-                }
+                <span class="player"></span>
+                continue;
             }
-        </div>
+
+            var coin = CoinLocations.FirstOrDefault(p => p.X == x && p.Y == y);
+
+            if (!coin.IsEmpty)
+            {
+                <span class="coin"></span>
+                continue;
+            }
+
+            var potion = PotionLocations.FirstOrDefault(p => p.X == x && p.Y == y);
+
+            if (!potion.IsEmpty)
+            {
+                <span class="potion"></span>
+                continue;
+            }
+
+            @if (@map[x, y] == 1)
+            {
+                <span class="wall"></span>
+            }
+            else if (@map[x, y] == 2)
+            {
+                <span class="grass"></span>
+            }
+            else if (@map[x, y] == 4)
+            {
+                <span class="ladder-down"></span>
+            }
+            else if (@map[x, y] == 5)
+            {
+                <span class="spider"></span>
+            }
+            else if (@map[x, y] == 7)
+            {
+                <span class="snake"></span>
+            }
+            else if (@map[x, y] == 8)
+            {
+                <span class="treasure-chest"></span>
+            }
+        }
+    </div>
     }
 </div>
 
@@ -74,10 +78,13 @@
     private int Health = 100;
     private int Score = 0;
     private const int CoinValue = 50;
+    private const int PotionValue = 50;
 
     private Timer timer;
     private int TotalNumberOfCoins = 3;
+    private int TotalNumberOfPotions = 2;
     private List<Point> CoinLocations = new List<Point>();
+    private List<Point> PotionLocations = new List<Point>();
 
     private const int GAME_FIELD_WIDTH = 24;
     private const int GAME_FIELD_HEIGHT = 20;
@@ -106,48 +113,18 @@
 { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
 { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
 { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
-                };
+                        };
 
     protected ElementReference gameFieldDiv;
 
     protected override void OnInitialized()
     {
         SpawnCoins();
+        SpawnPotions();
 
         timer = new Timer(1000);
         timer.Elapsed += new ElapsedEventHandler(GameLoop);
         timer.Enabled = true;
-    }
-
-    private Point GetRandomMapPoint()
-    {
-        var h = rand.Next(0, GAME_FIELD_HEIGHT - 1);
-        var w = rand.Next(0, GAME_FIELD_WIDTH - 1);
-
-        if (map[h, w] == 1 || (PlayerLocation.X == h && PlayerLocation.Y == w))
-        {
-            return GetRandomMapPoint();
-        }
-
-        return new Point(h, w);
-    }
-
-    private void SpawnCoins()
-    {
-        if (CoinLocations.Count() < TotalNumberOfCoins)
-        {
-            var numToAdd = TotalNumberOfCoins - CoinLocations.Count();
-
-            for (int i = 0; i < numToAdd; i++)
-            {
-                CoinLocations.Add(GetRandomMapPoint());                
-            }
-        }
-    }
-
-    private void GameLoop(object source, ElapsedEventArgs e)
-    {
-        SpawnCoins();
     }
 
     protected async override Task OnAfterRenderAsync(bool firstRender)
@@ -158,6 +135,57 @@
         }
     }
 
+    private Point GetRandomMapPoint()
+    {
+        var h = rand.Next(0, GAME_FIELD_HEIGHT - 1);
+        var w = rand.Next(0, GAME_FIELD_WIDTH - 1);
+
+        var OfflimitsLocations = new List<Point>();
+
+        OfflimitsLocations.Add(PlayerLocation);
+        OfflimitsLocations.AddRange(CoinLocations);
+        OfflimitsLocations.AddRange(PotionLocations);
+
+        if (map[h, w] == 1 || OfflimitsLocations.FirstOrDefault(p => p.X == h && p.Y == w) != Point.Empty)
+        {
+            return GetRandomMapPoint();
+        }
+
+        return new Point(h, w);
+    }
+
+    private void SpawnPotions()
+    {
+        if (PotionLocations.Count() < TotalNumberOfPotions)
+        {
+            var numToAdd = TotalNumberOfPotions - PotionLocations.Count();
+
+            for (int i = 0; i < numToAdd; i++)
+            {
+                PotionLocations.Add(GetRandomMapPoint());
+            }
+        }
+    }
+
+    private void SpawnCoins()
+    {
+        if (CoinLocations.Count() < TotalNumberOfCoins)
+        {
+            var numToAdd = TotalNumberOfCoins - CoinLocations.Count();
+
+            for (int i = 0; i < numToAdd; i++)
+            {
+                CoinLocations.Add(GetRandomMapPoint());
+            }
+        }
+    }
+
+    private void GameLoop(object source, ElapsedEventArgs e)
+    {
+        SpawnCoins();
+        SpawnPotions();
+    }
+
     private void ProcessItemPickup()
     {
         var coin = CoinLocations.FirstOrDefault(p => p.X == PlayerLocation.X && p.Y == PlayerLocation.Y);
@@ -166,6 +194,16 @@
         {
             Score += CoinValue;
             CoinLocations.Remove(coin);
+        }
+        else
+        {
+            var potion = PotionLocations.FirstOrDefault(p => p.X == PlayerLocation.X && p.Y == PlayerLocation.Y);
+
+            if (!potion.IsEmpty)
+            {
+                Health += PotionValue;
+                PotionLocations.Remove(potion);
+            }
         }
     }
 
@@ -206,4 +244,4 @@
             }
         }
     }
-} 
+}
