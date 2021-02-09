@@ -2,11 +2,6 @@
 
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    background-color: #000;
-}
-
-* {
-    color: #fff;
 }
 
 a, .btn-link {
@@ -74,7 +69,7 @@ a, .btn-link {
 }
 
 .grass {
-    background: url('/simple-tileset-full.png') -48px 0px;    
+    background: url('/simple-tileset-full.png') -48px 0px;
     height: 16px;
     width: 16px;
 }
@@ -111,6 +106,12 @@ a, .btn-link {
 
 .coin {
     background: url('/simple-tileset-full.png') -32px -16px;
+    height: 16px;
+    width: 16px;
+}
+
+.hidden {
+    background-color: #000;
     height: 16px;
     width: 16px;
 }

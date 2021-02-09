@@ -22,45 +22,52 @@
                 continue;
             }
 
-            var coin = CoinLocations.FirstOrDefault(p => p.X == x && p.Y == y);
+            if(@lightMap[x,y] == 2)
+            {
+                var coin = CoinLocations.FirstOrDefault(p => p.X == x && p.Y == y);
 
-            if (!coin.IsEmpty)
-            {
-                <span class="coin"></span>
-                continue;
-            }
+                if (!coin.IsEmpty)
+                {
+                    <span class="coin"></span>
+                    continue;
+                }
 
-            var potion = PotionLocations.FirstOrDefault(p => p.X == x && p.Y == y);
+                var potion = PotionLocations.FirstOrDefault(p => p.X == x && p.Y == y);
 
-            if (!potion.IsEmpty)
-            {
-                <span class="potion"></span>
-                continue;
-            }
+                if (!potion.IsEmpty)
+                {
+                    <span class="potion"></span>
+                    continue;
+                }
 
-            @if (@map[x, y] == 1)
-            {
-                <span class="wall"></span>
+                @if (@gameMap[x, y] == 1)
+                {
+                    <span class="wall"></span>
+                }
+                else if (@gameMap[x, y] == 2)
+                {
+                    <span class="grass"></span>
+                }
+                else if (@gameMap[x, y] == 4)
+                {
+                    <span class="ladder-down"></span>
+                }
+                else if (@gameMap[x, y] == 5)
+                {
+                    <span class="spider"></span>
+                }
+                else if (@gameMap[x, y] == 7)
+                {
+                    <span class="snake"></span>
+                }
+                else if (@gameMap[x, y] == 8)
+                {
+                    <span class="treasure-chest"></span>
+                }
             }
-            else if (@map[x, y] == 2)
+            else
             {
-                <span class="grass"></span>
-            }
-            else if (@map[x, y] == 4)
-            {
-                <span class="ladder-down"></span>
-            }
-            else if (@map[x, y] == 5)
-            {
-                <span class="spider"></span>
-            }
-            else if (@map[x, y] == 7)
-            {
-                <span class="snake"></span>
-            }
-            else if (@map[x, y] == 8)
-            {
-                <span class="treasure-chest"></span>
+                <span class="hidden"></span>
             }
         }
     </div>
@@ -81,32 +88,34 @@
     private int TotalNumberOfPotions = 2;
     private List<Point> CoinLocations = new List<Point>();
     private List<Point> PotionLocations = new List<Point>();
+    private List<Point> EnemyLocations = new List<Point>();
     private const int GAME_FIELD_WIDTH = 24;
     private const int GAME_FIELD_HEIGHT = 20;
     private Random rand = new Random();
-    private int[,] map = new int[GAME_FIELD_HEIGHT, GAME_FIELD_WIDTH]
+    private int[,] gameMap = new int[GAME_FIELD_HEIGHT, GAME_FIELD_WIDTH]
     {
         { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
         { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,1,1,1,1,1,2,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,2,2,2,2,2,2,1 },
-        { 1,2,2,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,2,1 },
-        { 1,2,2,2,2,2,1,1,1,1,2,2,2,2,2,1,2,2,2,2,2,1,2,1 },
-        { 1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,1,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,1,1,1,2,2,2,1,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,2,2,2,2,2,2,1,1,2,2,1,1,2,2,2,2,2,2,2,1 },
+        { 1,2,1,1,1,1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,2,2,2,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1,1,1,2,2,2,2,1 },
+        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,2,2,2,2,1 },
+        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
         { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
         { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
     };
+    private int[,] lightMap = new int[GAME_FIELD_HEIGHT, GAME_FIELD_WIDTH];
 
     protected ElementReference gameFieldDiv;
 
@@ -114,6 +123,8 @@
     {
         SpawnCoins();
         SpawnPotions();
+
+        lightMap = FOV();
 
         timer = new Timer(1000);
         timer.Elapsed += new ElapsedEventHandler(GameLoop);
@@ -139,7 +150,7 @@
         OfflimitsLocations.AddRange(CoinLocations);
         OfflimitsLocations.AddRange(PotionLocations);
 
-        if (map[h, w] == 1 || OfflimitsLocations.FirstOrDefault(p => p.X == h && p.Y == w) != Point.Empty)
+        if (gameMap[h, w] == 1 || OfflimitsLocations.FirstOrDefault(p => p.X == h && p.Y == w) != Point.Empty)
         {
             return GetRandomMapPoint();
         }
@@ -173,13 +184,18 @@
         }
     }
 
-    private void GameLoop(object source, ElapsedEventArgs e)
+    private async void GameLoop(object source, ElapsedEventArgs e)
     {
         SpawnCoins();
         SpawnPotions();
+
+        if(CoinLocations.Any())
+        {
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
-    private void ProcessItemPickup()
+    private void CheckThingsSincePlayerMoved()
     {
         var coin = CoinLocations.FirstOrDefault(p => p.X == PlayerLocation.X && p.Y == PlayerLocation.Y);
 
@@ -198,6 +214,8 @@
                 PotionLocations.Remove(potion);
             }
         }
+
+        lightMap = FOV();
     }
 
     private void KeyDown(KeyboardEventArgs args)
@@ -206,35 +224,135 @@
 
         if (args.Key == "ArrowUp")
         {
-            if (map[PlayerLocation.X - 1, PlayerLocation.Y] != 1)
+            if (gameMap[PlayerLocation.X - 1, PlayerLocation.Y] != 1)
             {
                 PlayerLocation.X -= 1;
-                ProcessItemPickup();
+                CheckThingsSincePlayerMoved();
             }
         }
         else if (args.Key == "ArrowDown")
         {
-            if (map[PlayerLocation.X + 1, PlayerLocation.Y] != 1)
+            if (gameMap[PlayerLocation.X + 1, PlayerLocation.Y] != 1)
             {
                 PlayerLocation.X += 1;
-                ProcessItemPickup();
+                CheckThingsSincePlayerMoved();
             }
         }
         else if (args.Key == "ArrowLeft")
         {
-            if (map[PlayerLocation.X, PlayerLocation.Y - 1] != 1)
+            if (gameMap[PlayerLocation.X, PlayerLocation.Y - 1] != 1)
             {
                 PlayerLocation.Y -= 1;
-                ProcessItemPickup();
+                CheckThingsSincePlayerMoved();
             }
         }
         else if (args.Key == "ArrowRight")
         {
-            if (map[PlayerLocation.X, PlayerLocation.Y + 1] != 1)
+            if (gameMap[PlayerLocation.X, PlayerLocation.Y + 1] != 1)
             {
                 PlayerLocation.Y += 1;
-                ProcessItemPickup();
+                CheckThingsSincePlayerMoved();
             }
         }
+    }
+
+    // http://ericw.ca/notes/bresenhams-line-algorithm-in-csharp.html
+    public static IEnumerable<Point> GetPointsOnLine(int x0, int y0, int x1, int y1)
+    {
+        bool steep = Math.Abs(y1 - y0) > Math.Abs(x1 - x0);
+        if (steep)
+        {
+            int t;
+            t = x0; // swap x0 and y0
+            x0 = y0;
+            y0 = t;
+            t = x1; // swap x1 and y1
+            x1 = y1;
+            y1 = t;
+        }
+        if (x0 > x1)
+        {
+            int t;
+            t = x0; // swap x0 and x1
+            x0 = x1;
+            x1 = t;
+            t = y0; // swap y0 and y1
+            y0 = y1;
+            y1 = t;
+        }
+        int dx = x1 - x0;
+        int dy = Math.Abs(y1 - y0);
+        int error = dx / 2;
+        int ystep = (y0 < y1) ? 1 : -1;
+        int y = y0;
+        for (int x = x0; x <= x1; x++)
+        {
+            yield return new Point((steep ? y : x), (steep ? x : y));
+            error = error - dy;
+            if (error < 0)
+            {
+                y += ystep;
+                error += dx;
+            }
+        }
+        yield break;
+    }
+
+    // Taken from http://www.roguebasin.com/index.php?title=Eligloscode
+    // Modified to fit in my game
+    private int[,] FOV()
+    {
+        float x,y;
+        int i;
+
+        int [,] map = new int[GAME_FIELD_HEIGHT, GAME_FIELD_WIDTH]
+        {
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
+        };
+
+        for(i=0;i<360;i++)
+        {
+            x = (float) Math.Cos(i*0.01745f);
+            y = (float) Math.Sin(i*0.01745f);
+            DoFov(x,y, map);
+        };
+
+        return map;
+    }
+
+    private void DoFov(float x,float y, int[,] map)
+    {
+        int i;
+        float ox,oy;
+        ox = (float) PlayerLocation.X+0.5f;
+        oy = (float) PlayerLocation.Y+0.5f;
+
+        for(i=0;i<360;i++)
+        {
+            map[(int)ox,(int)oy]=2;
+            if(gameMap[(int)ox,(int)oy]==1) // if tile is a wall
+               return;
+            ox+=x;
+            oy+=y;
+        };
     }
 }
