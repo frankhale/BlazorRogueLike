@@ -1,0 +1,148 @@
+@page "/scrolling"
+
+@using System.Drawing
+
+<div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown  @ref="gameFieldDiv">
+    @* HEIGHT *@
+    @for (int x = PlayerViewPortTopLeft.X; x < PlayerViewPortBottomLeft.Y; x++)
+    {
+        <div class="row">
+            @* WIDTH *@
+            @for (int y = PlayerViewPortTopLeft.X; y < PlayerViewPortTopRight.Y; y++)
+            {
+                if (PlayerLocation.X == x && PlayerLocation.Y == y)
+                {
+                    <span class="player"></span>
+                    continue;
+                }
+
+                @if (@gameMap[x, y] == 1)
+                {
+                    <span class="wall"></span>
+                }
+                else if (@gameMap[x, y] == 2)
+                {
+                    <span class="grass"></span>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code
+{
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; }
+    private ElementReference gameFieldDiv;
+    private Point PlayerLocation = new Point { X = 2, Y = 2 };
+    private int ViewPortHeight = 5;
+    private int ViewPortWidth = 5;
+    private Point PlayerViewPortTopLeft, PlayerViewPortTopRight, PlayerViewPortBottomLeft;
+    private const int WIDTH = 80;
+    private const int HEIGHT = 40;
+    private int[,] gameMap = new int[HEIGHT, WIDTH];
+
+    private async Task UpdatePlayerViewPortPoints(Point PlayerLocation)
+    {
+        // *,0,0,0,*
+        // 0,0,0,0,0
+        // 0,0,1,0,0
+        // 0,0,0,0,0
+        // *,0,0,0,0
+
+        int pltlx = PlayerLocation.X - ViewPortWidth;
+        int pltly = PlayerLocation.Y - ViewPortHeight;
+
+        PlayerViewPortTopLeft = new Point(Math.Max(0, pltlx), Math.Max(0, pltly));
+
+        // --
+
+        int pltrx = PlayerLocation.X + ViewPortWidth;
+        int pltry = PlayerLocation.Y + PlayerLocation.X + ViewPortWidth;
+
+        if(pltrx > WIDTH) pltrx = WIDTH;
+        if(pltry > HEIGHT) pltry = HEIGHT;
+
+        PlayerViewPortTopRight = new Point(pltrx, Math.Max(0, pltry));
+
+        // --
+
+        int plblx = PlayerLocation.X - ViewPortWidth;
+        int plbly = PlayerLocation.Y + ViewPortHeight;
+
+        if(plblx < 0) plblx = 0;
+        if(plbly > HEIGHT) plbly = HEIGHT;
+
+        PlayerViewPortBottomLeft = new Point(plblx, plbly);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UpdatePlayerViewPortPoints(PlayerLocation);
+
+        for(int height = 0; height < HEIGHT; height++)
+        for(int width = 0; width < WIDTH; width++)
+        {
+            // 0, -
+            // -, 0
+            // width, -
+            // height, -
+            if(height == 0 || width == 0 || height == HEIGHT-1 || width == WIDTH-1)
+            {
+                gameMap[height,width] = 1;
+            }
+            else
+            {
+                gameMap[height,width] = 2;
+            }
+        }
+    }
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("SetFocusToElement", gameFieldDiv);
+        }
+    }
+
+    private async Task KeyDown(KeyboardEventArgs args)
+    {
+        //Console.WriteLine($"Key Pressed: [{args.Key}]");
+
+        if (args.Key == "ArrowUp")
+        {
+            if (gameMap[PlayerLocation.X - 1, PlayerLocation.Y] != 1)
+            {
+                PlayerLocation.X -= 1;
+                await UpdatePlayerViewPortPoints(PlayerLocation);
+            }
+        }
+        else if (args.Key == "ArrowDown")
+        {
+            if (gameMap[PlayerLocation.X + 1, PlayerLocation.Y] != 1)
+            {
+                PlayerLocation.X += 1;
+                await UpdatePlayerViewPortPoints(PlayerLocation);
+            }
+        }
+        else if (args.Key == "ArrowLeft")
+        {
+            if (gameMap[PlayerLocation.X, PlayerLocation.Y - 1] != 1)
+            {
+                PlayerLocation.Y -= 1;
+                await UpdatePlayerViewPortPoints(PlayerLocation);
+            }
+        }
+        else if (args.Key == "ArrowRight")
+        {
+            if (gameMap[PlayerLocation.X, PlayerLocation.Y + 1] != 1)
+            {
+                PlayerLocation.Y += 1;
+                await UpdatePlayerViewPortPoints(PlayerLocation);
+            }
+        }
+    }
+}
