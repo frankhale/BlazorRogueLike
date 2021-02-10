@@ -9,6 +9,15 @@ aspects of creating roguelikes. As I figure out various aspects the code will
 be written better. Things are a little ugly rightn now. LOL!
 
 ![Demo](screenshots/demo.png)
+
+## Videos
+
+[![Game Play (Part 3)](https://img.youtube.com/vi/tgjRUyfhn2s/0.jpg)](https://www.youtube.com/watch?v=tgjRUyfhn2s)
+
+[![Game Play (Part 2)](https://img.youtube.com/vi/7A3VwB2smNE/0.jpg)](https://www.youtube.com/watch?v=7A3VwB2smNE)
+
+[![Game Play (Part 1)](https://img.youtube.com/vi/xezQIAswiIM/0.jpg)](https://www.youtube.com/watch?v=xezQIAswiIM)
+
 ## Author
 
 Frank Hale &lt;frankhaledevelops@gmail.com&gt;
