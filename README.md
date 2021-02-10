@@ -12,6 +12,8 @@ be written better. Things are a little ugly rightn now. LOL!
 
 ## Videos
 
+[![Game Play (Part 4)](https://img.youtube.com/vi/IamPy2GVZ2U/0.jpg)](https://www.youtube.com/watch?v=IamPy2GVZ2U)
+
 [![Game Play (Part 3)](https://img.youtube.com/vi/tgjRUyfhn2s/0.jpg)](https://www.youtube.com/watch?v=tgjRUyfhn2s)
 
 [![Game Play (Part 2)](https://img.youtube.com/vi/7A3VwB2smNE/0.jpg)](https://www.youtube.com/watch?v=7A3VwB2smNE)
