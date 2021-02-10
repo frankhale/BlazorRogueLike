@@ -4,9 +4,9 @@ This is a crazy idea where the game field is rendered using DIVs instead of
 something performant like a Canvas or WebGL. This is totally crazy and it's
 working!
 
-The code right now is terrible because I didn't want to spend a lot of time if
-the idea was going to fail. Since now I know the idea will work I will make it
-better!
+Things are being kept simple right now versus elegant as I work through various
+aspects of creating roguelikes. As I figure out various aspects the code will
+be written better. Things are a little ugly rightn now. LOL!
 
 ![Demo](screenshots/demo.png)
 ## Author
