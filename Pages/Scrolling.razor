@@ -24,11 +24,11 @@
 {
     private ElementReference gameFieldDiv;
     private Point PlayerLocation = new Point { X = 5, Y = 5 };
-    private int ViewPortHeight = 10;
-    private int ViewPortWidth = 10;
+    private int ViewPortHeight = 20;
+    private int ViewPortWidth = 25;
     private Rectangle ViewPort;
-    private const int WIDTH = 30;
-    private const int HEIGHT = 30;
+    private const int WIDTH = 100;
+    private const int HEIGHT = 100;
     private int[,] gameMap = new int[HEIGHT, WIDTH];
 
     private async Task UpdatePlayerViewPortPoints(Point PlayerLocation)
@@ -40,7 +40,8 @@
         if (viewPortX > (WIDTH - (ViewPortWidth * 2))) viewPortX = (WIDTH - (ViewPortWidth * 2));
 
         if (viewPortY < 0) viewPortY = Math.Max(0, viewPortY);
-        if (viewPortY > ViewPortHeight) viewPortY = ViewPortHeight;
+        //if (viewPortY > ViewPortHeight) viewPortY = ViewPortHeight;
+        if (viewPortY > (HEIGHT - (ViewPortHeight *2))) viewPortY = (HEIGHT - (ViewPortHeight *2));
 
         int viewPortWidth = viewPortX + (ViewPortWidth * 2);
         int viewPortHeight = viewPortY + (ViewPortHeight * 2);
@@ -67,7 +68,7 @@
                 {
                     var flip = random.Next(0, 100);
 
-                    if(flip <= 15 && height != PlayerLocation.Y && width != PlayerLocation.X)
+                    if(flip <= 5 && height != PlayerLocation.Y && width != PlayerLocation.X)
                     {
                         gameMap[height, width] = 1;
                     }
