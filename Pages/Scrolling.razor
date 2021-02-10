@@ -54,6 +54,8 @@
     {
         await UpdatePlayerViewPortPoints(PlayerLocation);
 
+        var random = new Random();
+
         for (int height = 0; height < HEIGHT; height++)
             for (int width = 0; width < WIDTH; width++)
             {
@@ -63,7 +65,16 @@
                 }
                 else
                 {
-                    gameMap[height, width] = 2;
+                    var flip = random.Next(0, 100);
+
+                    if(flip <= 15 && height != PlayerLocation.Y && width != PlayerLocation.X)
+                    {
+                        gameMap[height, width] = 1;
+                    }
+                    else
+                    {
+                        gameMap[height, width] = 2;
+                    }
                 }
             }
     }
