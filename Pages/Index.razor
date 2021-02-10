@@ -3,7 +3,13 @@
 @using System.Timers
 @using System.Drawing
 
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
 <div class="container-fluid">
+    <div class="row">
+        <button type="button" class="btn btn-primary" @onclick=GoToScrollingPage>Go To Scrolling Demo</button>
+    </div>
     <div class="row">
         <div>Health: @Health</div>
         &nbsp;|&nbsp;
@@ -13,71 +19,69 @@
 <div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown @ref="gameFieldDiv">
     @for (int x = 0; x < GAME_FIELD_HEIGHT; x++)
     {
-    <div class="row">
-        @for (int y = 0; y < GAME_FIELD_WIDTH; y++)
-        {
-            if (PlayerLocation.X == x && PlayerLocation.Y == y)
+        <div class="row">
+            @for (int y = 0; y < GAME_FIELD_WIDTH; y++)
             {
-                <span class="player"></span>
-                continue;
-            }
-
-            if(@lightMap[x,y] == 2)
-            {
-                var coin = CoinLocations.FirstOrDefault(p => p.X == x && p.Y == y);
-
-                if (!coin.IsEmpty)
+                if (PlayerLocation.X == x && PlayerLocation.Y == y)
                 {
-                    <span class="coin"></span>
+                    <span class="player"></span>
                     continue;
                 }
 
-                var potion = PotionLocations.FirstOrDefault(p => p.X == x && p.Y == y);
+                if (@lightMap[x, y] == 2)
+                {
+                    var coin = CoinLocations.FirstOrDefault(p => p.X == x && p.Y == y);
 
-                if (!potion.IsEmpty)
-                {
-                    <span class="potion"></span>
-                    continue;
-                }
+                    if (!coin.IsEmpty)
+                    {
+                        <span class="coin"></span>
+                        continue;
+                    }
 
-                @if (@gameMap[x, y] == 1)
-                {
-                    <span class="wall"></span>
+                    var potion = PotionLocations.FirstOrDefault(p => p.X == x && p.Y == y);
+
+                    if (!potion.IsEmpty)
+                    {
+                        <span class="potion"></span>
+                        continue;
+                    }
+
+                    @if (@gameMap[x, y] == 1)
+                    {
+                        <span class="wall"></span>
+                    }
+                    else if (@gameMap[x, y] == 2)
+                    {
+                        <span class="grass"></span>
+                    }
+                    else if (@gameMap[x, y] == 4)
+                    {
+                        <span class="ladder-down"></span>
+                    }
+                    else if (@gameMap[x, y] == 5)
+                    {
+                        <span class="spider"></span>
+                    }
+                    else if (@gameMap[x, y] == 7)
+                    {
+                        <span class="snake"></span>
+                    }
+                    else if (@gameMap[x, y] == 8)
+                    {
+                        <span class="treasure-chest"></span>
+                    }
                 }
-                else if (@gameMap[x, y] == 2)
+                else
                 {
-                    <span class="grass"></span>
-                }
-                else if (@gameMap[x, y] == 4)
-                {
-                    <span class="ladder-down"></span>
-                }
-                else if (@gameMap[x, y] == 5)
-                {
-                    <span class="spider"></span>
-                }
-                else if (@gameMap[x, y] == 7)
-                {
-                    <span class="snake"></span>
-                }
-                else if (@gameMap[x, y] == 8)
-                {
-                    <span class="treasure-chest"></span>
+                    <span class="hidden"></span>
                 }
             }
-            else
-            {
-                <span class="hidden"></span>
-            }
-        }
-    </div>
+        </div>
     }
 </div>
 
 @code
 {
-    [Inject]
-    private IJSRuntime JSRuntime { get; set; }
     private Point PlayerLocation = new Point { X = 2, Y = 2 };
     private int Health = 100;
     private int Score = 0;
@@ -94,27 +98,27 @@
     private Random rand = new Random();
     private int[,] gameMap = new int[GAME_FIELD_HEIGHT, GAME_FIELD_WIDTH]
     {
-        { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1 },
-        { 1,2,2,2,1,1,1,1,1,2,2,2,2,2,1,1,1,1,1,1,2,2,2,1 },
-        { 1,2,2,2,1,2,2,2,2,2,2,2,2,2,1,1,1,1,2,2,2,2,2,1 },
-        { 1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,1 },
-        { 1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,1,1,2,2,1,1,2,2,2,2,2,2,2,1 },
-        { 1,2,1,1,1,1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1,1,1,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-        { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
-    };
+{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1 },
+{ 1,2,2,2,1,1,1,1,1,2,2,2,2,2,1,1,1,1,1,1,2,2,2,1 },
+{ 1,2,2,2,1,2,2,2,2,2,2,2,2,2,1,1,1,1,2,2,2,2,2,1 },
+{ 1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,1 },
+{ 1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,1,1,2,2,1,1,2,2,2,2,2,2,2,1 },
+{ 1,2,1,1,1,1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1,1,1,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
+                        };
     private int[,] lightMap = new int[GAME_FIELD_HEIGHT, GAME_FIELD_WIDTH];
 
     private ElementReference gameFieldDiv;
@@ -189,7 +193,7 @@
         SpawnCoins();
         SpawnPotions();
 
-        if(CoinLocations.Any())
+        if (CoinLocations.Any())
         {
             await InvokeAsync(StateHasChanged);
         }
@@ -260,57 +264,62 @@
     // Modified to fit in my game
     private int[,] FOV()
     {
-        float x,y;
+        float x, y;
         int i;
 
-        int [,] map = new int[GAME_FIELD_HEIGHT, GAME_FIELD_WIDTH]
+        int[,] map = new int[GAME_FIELD_HEIGHT, GAME_FIELD_WIDTH]
         {
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-            { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
-        };
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
+                            };
 
-        for(i=0;i<360;i++)
+        for (i = 0; i < 360; i++)
         {
-            x = (float) Math.Cos(i*0.01745f);
-            y = (float) Math.Sin(i*0.01745f);
-            DoFov(x,y, map);
+            x = (float)Math.Cos(i * 0.01745f);
+            y = (float)Math.Sin(i * 0.01745f);
+            DoFov(x, y, map);
         };
 
         return map;
     }
 
-    private void DoFov(float x,float y, int[,] map)
+    private void DoFov(float x, float y, int[,] map)
     {
         int i;
-        float ox,oy;
-        ox = (float) PlayerLocation.X+0.5f;
-        oy = (float) PlayerLocation.Y+0.5f;
+        float ox, oy;
+        ox = (float)PlayerLocation.X + 0.5f;
+        oy = (float)PlayerLocation.Y + 0.5f;
 
-        for(i=0;i<360;i++)
+        for (i = 0; i < 360; i++)
         {
-            map[(int)ox,(int)oy]=2;
-            if(gameMap[(int)ox,(int)oy]==1) // if tile is a wall
-               return;
-            ox+=x;
-            oy+=y;
+            map[(int)ox, (int)oy] = 2;
+            if (gameMap[(int)ox, (int)oy] == 1) // if tile is a wall
+                return;
+            ox += x;
+            oy += y;
         };
+    }
+
+    private void GoToScrollingPage()
+    {
+        NavigationManager.NavigateTo("/scrolling");
     }
 }

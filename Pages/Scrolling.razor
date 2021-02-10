@@ -1,14 +1,12 @@
 @page "/scrolling"
-
 @using System.Drawing
+@inject IJSRuntime JSRuntime
 
-<div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown  @ref="gameFieldDiv">
-    @* HEIGHT *@
-    @for (int x = PlayerViewPortTopLeft.X; x < PlayerViewPortBottomLeft.Y; x++)
+<div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown @ref="gameFieldDiv">
+    @for (int y = ViewPort.Y; y < ViewPort.Height; y++)
     {
         <div class="row">
-            @* WIDTH *@
-            @for (int y = PlayerViewPortTopLeft.X; y < PlayerViewPortTopRight.Y; y++)
+            @for (int x = ViewPort.X; x < ViewPort.Width; x++)
             {
                 if (PlayerLocation.X == x && PlayerLocation.Y == y)
                 {
@@ -16,14 +14,7 @@
                     continue;
                 }
 
-                @if (@gameMap[x, y] == 1)
-                {
-                    <span class="wall"></span>
-                }
-                else if (@gameMap[x, y] == 2)
-                {
-                    <span class="grass"></span>
-                }
+                <span class=@(GetTileClassName(x, y))></span>
             }
         </div>
     }
@@ -31,49 +22,30 @@
 
 @code
 {
-    [Inject]
-    private IJSRuntime JSRuntime { get; set; }
     private ElementReference gameFieldDiv;
-    private Point PlayerLocation = new Point { X = 2, Y = 2 };
-    private int ViewPortHeight = 5;
-    private int ViewPortWidth = 5;
-    private Point PlayerViewPortTopLeft, PlayerViewPortTopRight, PlayerViewPortBottomLeft;
-    private const int WIDTH = 80;
-    private const int HEIGHT = 40;
+    private Point PlayerLocation = new Point { X = 5, Y = 5 };
+    private int ViewPortHeight = 10;
+    private int ViewPortWidth = 10;
+    private Rectangle ViewPort;
+    private const int WIDTH = 30;
+    private const int HEIGHT = 30;
     private int[,] gameMap = new int[HEIGHT, WIDTH];
 
     private async Task UpdatePlayerViewPortPoints(Point PlayerLocation)
     {
-        // *,0,0,0,*
-        // 0,0,0,0,0
-        // 0,0,1,0,0
-        // 0,0,0,0,0
-        // *,0,0,0,0
+        int viewPortX = PlayerLocation.X - ViewPortWidth;
+        int viewPortY = PlayerLocation.Y - ViewPortHeight;
 
-        int pltlx = PlayerLocation.X - ViewPortWidth;
-        int pltly = PlayerLocation.Y - ViewPortHeight;
+        if (viewPortX < 0) viewPortX = Math.Max(0, viewPortX);
+        if (viewPortX > (WIDTH - (ViewPortWidth * 2))) viewPortX = (WIDTH - (ViewPortWidth * 2));
 
-        PlayerViewPortTopLeft = new Point(Math.Max(0, pltlx), Math.Max(0, pltly));
+        if (viewPortY < 0) viewPortY = Math.Max(0, viewPortY);
+        if (viewPortY > ViewPortHeight) viewPortY = ViewPortHeight;
 
-        // --
+        int viewPortWidth = viewPortX + (ViewPortWidth * 2);
+        int viewPortHeight = viewPortY + (ViewPortHeight * 2);
 
-        int pltrx = PlayerLocation.X + ViewPortWidth;
-        int pltry = PlayerLocation.Y + PlayerLocation.X + ViewPortWidth;
-
-        if(pltrx > WIDTH) pltrx = WIDTH;
-        if(pltry > HEIGHT) pltry = HEIGHT;
-
-        PlayerViewPortTopRight = new Point(pltrx, Math.Max(0, pltry));
-
-        // --
-
-        int plblx = PlayerLocation.X - ViewPortWidth;
-        int plbly = PlayerLocation.Y + ViewPortHeight;
-
-        if(plblx < 0) plblx = 0;
-        if(plbly > HEIGHT) plbly = HEIGHT;
-
-        PlayerViewPortBottomLeft = new Point(plblx, plbly);
+        ViewPort = new Rectangle(viewPortX, viewPortY, viewPortWidth, viewPortHeight);
 
         await InvokeAsync(StateHasChanged);
     }
@@ -82,22 +54,18 @@
     {
         await UpdatePlayerViewPortPoints(PlayerLocation);
 
-        for(int height = 0; height < HEIGHT; height++)
-        for(int width = 0; width < WIDTH; width++)
-        {
-            // 0, -
-            // -, 0
-            // width, -
-            // height, -
-            if(height == 0 || width == 0 || height == HEIGHT-1 || width == WIDTH-1)
+        for (int height = 0; height < HEIGHT; height++)
+            for (int width = 0; width < WIDTH; width++)
             {
-                gameMap[height,width] = 1;
+                if (height == 0 || width == 0 || height == HEIGHT - 1 || width == WIDTH - 1)
+                {
+                    gameMap[height, width] = 1;
+                }
+                else
+                {
+                    gameMap[height, width] = 2;
+                }
             }
-            else
-            {
-                gameMap[height,width] = 2;
-            }
-        }
     }
 
     protected async override Task OnAfterRenderAsync(bool firstRender)
@@ -110,39 +78,55 @@
 
     private async Task KeyDown(KeyboardEventArgs args)
     {
-        //Console.WriteLine($"Key Pressed: [{args.Key}]");
-
         if (args.Key == "ArrowUp")
         {
-            if (gameMap[PlayerLocation.X - 1, PlayerLocation.Y] != 1)
-            {
-                PlayerLocation.X -= 1;
-                await UpdatePlayerViewPortPoints(PlayerLocation);
-            }
-        }
-        else if (args.Key == "ArrowDown")
-        {
-            if (gameMap[PlayerLocation.X + 1, PlayerLocation.Y] != 1)
-            {
-                PlayerLocation.X += 1;
-                await UpdatePlayerViewPortPoints(PlayerLocation);
-            }
-        }
-        else if (args.Key == "ArrowLeft")
-        {
-            if (gameMap[PlayerLocation.X, PlayerLocation.Y - 1] != 1)
+            if (gameMap[PlayerLocation.Y - 1, PlayerLocation.X] != 1)
             {
                 PlayerLocation.Y -= 1;
                 await UpdatePlayerViewPortPoints(PlayerLocation);
             }
         }
-        else if (args.Key == "ArrowRight")
+        else if (args.Key == "ArrowDown")
         {
-            if (gameMap[PlayerLocation.X, PlayerLocation.Y + 1] != 1)
+            if (gameMap[PlayerLocation.Y + 1, PlayerLocation.X] != 1)
             {
                 PlayerLocation.Y += 1;
                 await UpdatePlayerViewPortPoints(PlayerLocation);
             }
         }
+        else if (args.Key == "ArrowLeft")
+        {
+            if (gameMap[PlayerLocation.Y, PlayerLocation.X - 1] != 1)
+            {
+                PlayerLocation.X -= 1;
+                await UpdatePlayerViewPortPoints(PlayerLocation);
+            }
+        }
+        else if (args.Key == "ArrowRight")
+        {
+            if (gameMap[PlayerLocation.Y, PlayerLocation.X + 1] != 1)
+            {
+                PlayerLocation.X += 1;
+                await UpdatePlayerViewPortPoints(PlayerLocation);
+            }
+        }
     }
+
+    private string GetTileClassName(int x, int y)
+    {
+        if(x >= WIDTH) x = WIDTH - 1;
+        if(y >= HEIGHT) y = HEIGHT - 1;
+
+        if (gameMap[y, x] == 1)
+        {
+            return "wall";
+        }
+        else if (gameMap[y, x] == 2)
+        {
+            return "grass";
+        }
+
+        return "hidden";
+    }
+
 }
