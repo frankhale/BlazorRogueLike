@@ -1,15 +1,10 @@
 ﻿@page "/"
 
-@using System.Timers
 @using System.Drawing
-
-@inject NavigationManager NavigationManager
+@using System.Timers
 @inject IJSRuntime JSRuntime
 
 <div class="container-fluid">
-    <div class="row">
-        <button type="button" class="btn btn-primary" @onclick=GoToScrollingPage>Go To Scrolling Demo</button>
-    </div>
     <div class="row">
         <div>Health: @Health</div>
         &nbsp;|&nbsp;
@@ -17,10 +12,10 @@
     </div>
 </div>
 <div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown @ref="gameFieldDiv">
-    @for (int x = 0; x < GAME_FIELD_HEIGHT; x++)
+    @for (int y = ViewPort.Y; y < ViewPort.Height; y++)
     {
         <div class="row">
-            @for (int y = 0; y < GAME_FIELD_WIDTH; y++)
+            @for (int x = ViewPort.X; x < ViewPort.Width; x++)
             {
                 if (PlayerLocation.X == x && PlayerLocation.Y == y)
                 {
@@ -28,53 +23,7 @@
                     continue;
                 }
 
-                if (@lightMap[x, y] == 2)
-                {
-                    var coin = CoinLocations.FirstOrDefault(p => p.X == x && p.Y == y);
-
-                    if (!coin.IsEmpty)
-                    {
-                        <span class="coin"></span>
-                        continue;
-                    }
-
-                    var potion = PotionLocations.FirstOrDefault(p => p.X == x && p.Y == y);
-
-                    if (!potion.IsEmpty)
-                    {
-                        <span class="potion"></span>
-                        continue;
-                    }
-
-                    @if (@gameMap[x, y] == 1)
-                    {
-                        <span class="wall"></span>
-                    }
-                    else if (@gameMap[x, y] == 2)
-                    {
-                        <span class="grass"></span>
-                    }
-                    else if (@gameMap[x, y] == 4)
-                    {
-                        <span class="ladder-down"></span>
-                    }
-                    else if (@gameMap[x, y] == 5)
-                    {
-                        <span class="spider"></span>
-                    }
-                    else if (@gameMap[x, y] == 7)
-                    {
-                        <span class="snake"></span>
-                    }
-                    else if (@gameMap[x, y] == 8)
-                    {
-                        <span class="treasure-chest"></span>
-                    }
-                }
-                else
-                {
-                    <span class="hidden"></span>
-                }
+                <span class=@(GetTileClassName(x, y))></span>
             }
         </div>
     }
@@ -82,57 +31,133 @@
 
 @code
 {
-    private Point PlayerLocation = new Point { X = 2, Y = 2 };
     private int Health = 100;
     private int Score = 0;
     private const int CoinValue = 50;
-    private const int PotionValue = 50;
-    private Timer timer;
-    private int TotalNumberOfCoins = 3;
-    private int TotalNumberOfPotions = 2;
+    private const int PotionValue = 25;
+    private int TotalNumberOfCoins = 300;
+    private int TotalNumberOfPotions = 50;
+    private Random random = new Random();
     private List<Point> CoinLocations = new List<Point>();
     private List<Point> PotionLocations = new List<Point>();
     private List<Point> EnemyLocations = new List<Point>();
-    private const int GAME_FIELD_WIDTH = 24;
-    private const int GAME_FIELD_HEIGHT = 20;
-    private Random rand = new Random();
-    private int[,] gameMap = new int[GAME_FIELD_HEIGHT, GAME_FIELD_WIDTH]
-    {
-{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1 },
-{ 1,2,2,2,1,1,1,1,1,2,2,2,2,2,1,1,1,1,1,1,2,2,2,1 },
-{ 1,2,2,2,1,2,2,2,2,2,2,2,2,2,1,1,1,1,2,2,2,2,2,1 },
-{ 1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,1 },
-{ 1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,2,2,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,2,2,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,1,1,2,2,1,1,2,2,2,2,2,2,2,1 },
-{ 1,2,1,1,1,1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-{ 1,2,2,2,2,2,2,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-{ 1,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1,1,1,2,2,2,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,2,2,2,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-{ 1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
-{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
-                        };
-    private int[,] lightMap = new int[GAME_FIELD_HEIGHT, GAME_FIELD_WIDTH];
-
     private ElementReference gameFieldDiv;
+    private Point PlayerLocation = new Point { X = 5, Y = 5 };
+    private int ViewPortHeight = 20;
+    private int ViewPortWidth = 25;
+    private Rectangle ViewPort;
+    private const int WIDTH = 100;
+    private const int HEIGHT = 80;
+    private int[,] gameMap = new int[HEIGHT, WIDTH];
+    private int[,] lightMap = new int[HEIGHT, WIDTH];
+
+    private void UpdatePlayerViewPortPoints(Point PlayerLocation)
+    {
+        int viewPortX = PlayerLocation.X - ViewPortWidth;
+        int viewPortY = PlayerLocation.Y - ViewPortHeight;
+
+        if (viewPortX < 0) viewPortX = Math.Max(0, viewPortX);
+        if (viewPortX > (WIDTH - (ViewPortWidth * 2))) viewPortX = (WIDTH - (ViewPortWidth * 2));
+
+        if (viewPortY < 0) viewPortY = Math.Max(0, viewPortY);
+        if (viewPortY > (HEIGHT - (ViewPortHeight *2))) viewPortY = (HEIGHT - (ViewPortHeight *2));
+
+        int viewPortWidth = viewPortX + (ViewPortWidth * 2);
+        int viewPortHeight = viewPortY + (ViewPortHeight * 2);
+
+        ViewPort = new Rectangle(viewPortX, viewPortY, viewPortWidth, viewPortHeight);
+
+        lightMap = FOV();
+    }
 
     protected override void OnInitialized()
     {
+        for (int height = 0; height < HEIGHT; height++)
+        {
+            for (int width = 0; width < WIDTH; width++)
+            {
+                if (height == 0 || width == 0 || height == HEIGHT - 1 || width == WIDTH - 1)
+                {
+                    gameMap[height, width] = 1;
+                }
+                else
+                {
+                    if(random.Next(0, 100) <= 5 && height != PlayerLocation.Y && width != PlayerLocation.X)
+                    {
+                        gameMap[height, width] = 1;
+                    }
+                    else
+                    {
+                        gameMap[height, width] = 2;
+                    }
+                }
+            }
+        }
+
+        UpdatePlayerViewPortPoints(PlayerLocation);
+
         SpawnCoins();
         SpawnPotions();
 
-        lightMap = FOV();
-
-        timer = new Timer(1000);
+        var timer = new Timer(1000);
         timer.Elapsed += new ElapsedEventHandler(GameLoop);
         timer.Enabled = true;
+    }
+
+    private Point GenerateRandomPoint()
+    {
+        int h = 0;
+        int w = 0;
+
+        do {
+            h = random.Next(0, HEIGHT-1);
+            w = random.Next(0, WIDTH-1);
+        }
+        // We are only checking to see if the tile is a wall and now if we
+        // already placed some other object. FIX ME LATER!
+        while(gameMap[h, w] == 1);
+
+        return new Point(w, h);
+    }
+
+    private void SpawnPotions()
+    {
+        if (PotionLocations.Count() == 0)
+        {
+            for (int i = 0; i < TotalNumberOfPotions; i++)
+            {
+                PotionLocations.Add(GenerateRandomPoint());
+            }
+        }
+    }
+
+    private void SpawnCoins()
+    {
+        if (CoinLocations.Count() == 0)
+        {
+            for (int i = 0; i < TotalNumberOfCoins; i++)
+            {
+                CoinLocations.Add(GenerateRandomPoint());
+            }
+        }
+    }
+
+    private void GameLoop(object source, ElapsedEventArgs e)
+    {
+        // TODO: Do some game updates here...
+    }
+
+    private int[,] InitializeMap()
+    {
+        int[,] map = new int[HEIGHT, WIDTH];
+
+        for (int height = 0; height < HEIGHT; height++)
+        for (int width = 0; width < WIDTH; width++)
+        {
+            map[height, width] = 0;
+        }
+
+        return map;
     }
 
     protected async override Task OnAfterRenderAsync(bool firstRender)
@@ -143,63 +168,7 @@
         }
     }
 
-    private Point GetRandomMapPoint()
-    {
-        var h = rand.Next(0, GAME_FIELD_HEIGHT - 1);
-        var w = rand.Next(0, GAME_FIELD_WIDTH - 1);
-
-        var OfflimitsLocations = new List<Point>();
-
-        OfflimitsLocations.Add(PlayerLocation);
-        OfflimitsLocations.AddRange(CoinLocations);
-        OfflimitsLocations.AddRange(PotionLocations);
-
-        if (gameMap[h, w] == 1 || OfflimitsLocations.FirstOrDefault(p => p.X == h && p.Y == w) != Point.Empty)
-        {
-            return GetRandomMapPoint();
-        }
-
-        return new Point(h, w);
-    }
-
-    private void SpawnPotions()
-    {
-        if (PotionLocations.Count() < TotalNumberOfPotions)
-        {
-            var numToAdd = TotalNumberOfPotions - PotionLocations.Count();
-
-            for (int i = 0; i < numToAdd; i++)
-            {
-                PotionLocations.Add(GetRandomMapPoint());
-            }
-        }
-    }
-
-    private void SpawnCoins()
-    {
-        if (CoinLocations.Count() < TotalNumberOfCoins)
-        {
-            var numToAdd = TotalNumberOfCoins - CoinLocations.Count();
-
-            for (int i = 0; i < numToAdd; i++)
-            {
-                CoinLocations.Add(GetRandomMapPoint());
-            }
-        }
-    }
-
-    private async void GameLoop(object source, ElapsedEventArgs e)
-    {
-        SpawnCoins();
-        SpawnPotions();
-
-        if (CoinLocations.Any())
-        {
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
-    private void CheckThingsSincePlayerMoved()
+    private void UpdateAfterPlayerMoved()
     {
         var coin = CoinLocations.FirstOrDefault(p => p.X == PlayerLocation.X && p.Y == PlayerLocation.Y);
 
@@ -224,40 +193,72 @@
 
     private void KeyDown(KeyboardEventArgs args)
     {
-        //Console.WriteLine($"Key Pressed: [{args.Key}]");
-
         if (args.Key == "ArrowUp")
         {
-            if (gameMap[PlayerLocation.X - 1, PlayerLocation.Y] != 1)
+            if (gameMap[PlayerLocation.Y - 1, PlayerLocation.X] != 1)
             {
-                PlayerLocation.X -= 1;
-                CheckThingsSincePlayerMoved();
+                PlayerLocation.Y -= 1;
+                UpdateAfterPlayerMoved();
+                UpdatePlayerViewPortPoints(PlayerLocation);
             }
         }
         else if (args.Key == "ArrowDown")
         {
-            if (gameMap[PlayerLocation.X + 1, PlayerLocation.Y] != 1)
+            if (gameMap[PlayerLocation.Y + 1, PlayerLocation.X] != 1)
             {
-                PlayerLocation.X += 1;
-                CheckThingsSincePlayerMoved();
+                PlayerLocation.Y += 1;
+                UpdateAfterPlayerMoved();
+                UpdatePlayerViewPortPoints(PlayerLocation);
             }
         }
         else if (args.Key == "ArrowLeft")
         {
-            if (gameMap[PlayerLocation.X, PlayerLocation.Y - 1] != 1)
+            if (gameMap[PlayerLocation.Y, PlayerLocation.X - 1] != 1)
             {
-                PlayerLocation.Y -= 1;
-                CheckThingsSincePlayerMoved();
+                PlayerLocation.X -= 1;
+                UpdateAfterPlayerMoved();
+                UpdatePlayerViewPortPoints(PlayerLocation);
             }
         }
         else if (args.Key == "ArrowRight")
         {
-            if (gameMap[PlayerLocation.X, PlayerLocation.Y + 1] != 1)
+            if (gameMap[PlayerLocation.Y, PlayerLocation.X + 1] != 1)
             {
-                PlayerLocation.Y += 1;
-                CheckThingsSincePlayerMoved();
+                PlayerLocation.X += 1;
+                UpdateAfterPlayerMoved();
+                UpdatePlayerViewPortPoints(PlayerLocation);
             }
         }
+    }
+
+    private string GetTileClassName(int x, int y)
+    {
+        if(x >= WIDTH) x = WIDTH - 1;
+        if(y >= HEIGHT) y = HEIGHT - 1;
+
+        if (@lightMap[y, x] == 2)
+        {
+            if (CoinLocations.Any(p => p.X == x && p.Y == y))
+            {
+                return "coin";
+            }
+
+            if (PotionLocations.Any(p => p.X == x && p.Y == y))
+            {
+                return "potion";
+            }
+
+            if (gameMap[y, x] == 1)
+            {
+                return "wall";
+            }
+            else if (gameMap[y, x] == 2)
+            {
+                return "grass";
+            }
+        }
+
+        return "hidden";
     }
 
     // Taken from http://www.roguebasin.com/index.php?title=Eligloscode
@@ -267,29 +268,7 @@
         float x, y;
         int i;
 
-        int[,] map = new int[GAME_FIELD_HEIGHT, GAME_FIELD_WIDTH]
-        {
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
-                            };
+        int[,] map = InitializeMap();
 
         for (i = 0; i < 360; i++)
         {
@@ -310,16 +289,11 @@
 
         for (i = 0; i < 360; i++)
         {
-            map[(int)ox, (int)oy] = 2;
-            if (gameMap[(int)ox, (int)oy] == 1) // if tile is a wall
+            map[(int)oy,(int)ox] = 2;
+            if (gameMap[(int)oy,(int)ox] == 1) // if tile is a wall
                 return;
             ox += x;
             oy += y;
         };
-    }
-
-    private void GoToScrollingPage()
-    {
-        NavigationManager.NavigateTo("/scrolling");
     }
 }
