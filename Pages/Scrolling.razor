@@ -34,9 +34,10 @@
     private int Score = 0;
     private const int CoinValue = 50;
     private const int PotionValue = 25;
-    private Timer timer;
     private int TotalNumberOfCoins = 300;
-    private int TotalNumberOfPotions = 200;
+    private int TotalNumberOfPotions = 50;
+    //private Timer timer;
+    private Random random = new Random();
     private List<Point> CoinLocations = new List<Point>();
     private List<Point> PotionLocations = new List<Point>();
     private List<Point> EnemyLocations = new List<Point>();
@@ -46,11 +47,11 @@
     private int ViewPortWidth = 25;
     private Rectangle ViewPort;
     private const int WIDTH = 100;
-    private const int HEIGHT = 100;
+    private const int HEIGHT = 80;
     private int[,] gameMap = new int[HEIGHT, WIDTH];
     private int[,] lightMap = new int[HEIGHT, WIDTH];
 
-    private async Task UpdatePlayerViewPortPoints(Point PlayerLocation)
+    private void UpdatePlayerViewPortPoints(Point PlayerLocation)
     {
         int viewPortX = PlayerLocation.X - ViewPortWidth;
         int viewPortY = PlayerLocation.Y - ViewPortHeight;
@@ -67,14 +68,10 @@
         ViewPort = new Rectangle(viewPortX, viewPortY, viewPortWidth, viewPortHeight);
 
         lightMap = FOV();
-
-        await InvokeAsync(StateHasChanged);
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        var random = new Random();
-
         for (int height = 0; height < HEIGHT; height++)
         {
             for (int width = 0; width < WIDTH; width++)
@@ -97,42 +94,39 @@
             }
         }
 
-        await UpdatePlayerViewPortPoints(PlayerLocation);
+        UpdatePlayerViewPortPoints(PlayerLocation);
 
-        timer = new Timer(1000);
-        timer.Elapsed += new ElapsedEventHandler(GameLoop);
-        timer.Enabled = true;
+        SpawnCoins();
+        SpawnPotions();
+
+        //timer = new Timer(1000);
+        //timer.Elapsed += new ElapsedEventHandler(GameLoop);
+        //timer.Enabled = true;
     }
 
-    private Point GetRandomMapPoint()
+    private Point GenerateRandomPoint()
     {
-        var random = new Random();
-        var h = random.Next(1, HEIGHT - 1);
-        var w = random.Next(1, WIDTH - 1);
+        int h = 0;
+        int w = 0;
 
-        var OfflimitsLocations = new List<Point>();
-
-        OfflimitsLocations.Add(PlayerLocation);
-        OfflimitsLocations.AddRange(CoinLocations);
-        OfflimitsLocations.AddRange(PotionLocations);
-
-        if (gameMap[h, w] != 1 && OfflimitsLocations.FirstOrDefault(p => p.X == h && p.Y == w) != Point.Empty)
-        {
-            return GetRandomMapPoint();
+        do {
+            h = random.Next(0, HEIGHT-1);
+            w = random.Next(0, WIDTH-1);
         }
+        // We are only checking to see if the tile is a wall and now if we
+        // already placed some other object. FIX ME LATER!
+        while(gameMap[h, w] == 1);
 
-        return new Point(h, w);
+        return new Point(w, h);
     }
 
     private void SpawnPotions()
     {
         if (PotionLocations.Count() == 0)
         {
-            var numToAdd = TotalNumberOfPotions - PotionLocations.Count();
-
-            for (int i = 0; i < numToAdd; i++)
+            for (int i = 0; i < TotalNumberOfPotions; i++)
             {
-                PotionLocations.Add(GetRandomMapPoint());
+                PotionLocations.Add(GenerateRandomPoint());
             }
         }
     }
@@ -141,25 +135,23 @@
     {
         if (CoinLocations.Count() == 0)
         {
-            var numToAdd = TotalNumberOfCoins - CoinLocations.Count();
-
-            for (int i = 0; i < numToAdd; i++)
+            for (int i = 0; i < TotalNumberOfCoins; i++)
             {
-                CoinLocations.Add(GetRandomMapPoint());
+                CoinLocations.Add(GenerateRandomPoint());
             }
         }
     }
 
-    private async void GameLoop(object source, ElapsedEventArgs e)
-    {
-        SpawnCoins();
-        SpawnPotions();
+    //private async void GameLoop(object source, ElapsedEventArgs e)
+    //{
+        //SpawnCoins();
+        //SpawnPotions();
 
-        if (CoinLocations.Any() || PotionLocations.Any())
-        {
-            await InvokeAsync(StateHasChanged);
-        }
-    }
+        //if (CoinLocations.Any() || PotionLocations.Any())
+        //{
+        //    await InvokeAsync(StateHasChanged);
+        //}
+    //}
 
     private int[,] InitializeMap()
     {
@@ -205,7 +197,7 @@
         lightMap = FOV();
     }
 
-    private async Task KeyDown(KeyboardEventArgs args)
+    private void KeyDown(KeyboardEventArgs args)
     {
         if (args.Key == "ArrowUp")
         {
@@ -213,7 +205,7 @@
             {
                 PlayerLocation.Y -= 1;
                 UpdateAfterPlayerMoved();
-                await UpdatePlayerViewPortPoints(PlayerLocation);
+                UpdatePlayerViewPortPoints(PlayerLocation);
             }
         }
         else if (args.Key == "ArrowDown")
@@ -222,7 +214,7 @@
             {
                 PlayerLocation.Y += 1;
                 UpdateAfterPlayerMoved();
-                await UpdatePlayerViewPortPoints(PlayerLocation);
+                UpdatePlayerViewPortPoints(PlayerLocation);
             }
         }
         else if (args.Key == "ArrowLeft")
@@ -231,7 +223,7 @@
             {
                 PlayerLocation.X -= 1;
                 UpdateAfterPlayerMoved();
-                await UpdatePlayerViewPortPoints(PlayerLocation);
+                UpdatePlayerViewPortPoints(PlayerLocation);
             }
         }
         else if (args.Key == "ArrowRight")
@@ -240,7 +232,7 @@
             {
                 PlayerLocation.X += 1;
                 UpdateAfterPlayerMoved();
-                await UpdatePlayerViewPortPoints(PlayerLocation);
+                UpdatePlayerViewPortPoints(PlayerLocation);
             }
         }
     }
@@ -252,16 +244,12 @@
 
         if (@lightMap[y, x] == 2)
         {
-            var coin = CoinLocations.FirstOrDefault(p => p.X == x && p.Y == y);
-
-            if (!coin.IsEmpty)
+            if (CoinLocations.Any(p => p.X == x && p.Y == y))
             {
                 return "coin";
             }
 
-            var potion = PotionLocations.FirstOrDefault(p => p.X == x && p.Y == y);
-
-            if (!potion.IsEmpty)
+            if (PotionLocations.Any(p => p.X == x && p.Y == y))
             {
                 return "potion";
             }
