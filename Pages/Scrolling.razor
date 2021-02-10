@@ -30,6 +30,7 @@
     private const int WIDTH = 100;
     private const int HEIGHT = 100;
     private int[,] gameMap = new int[HEIGHT, WIDTH];
+    private int[,] lightMap = new int[HEIGHT, WIDTH];
 
     private async Task UpdatePlayerViewPortPoints(Point PlayerLocation)
     {
@@ -48,13 +49,13 @@
 
         ViewPort = new Rectangle(viewPortX, viewPortY, viewPortWidth, viewPortHeight);
 
+        lightMap = FOV();
+
         await InvokeAsync(StateHasChanged);
     }
 
     protected override async Task OnInitializedAsync()
     {
-        await UpdatePlayerViewPortPoints(PlayerLocation);
-
         var random = new Random();
 
         for (int height = 0; height < HEIGHT; height++)
@@ -78,6 +79,21 @@
                     }
                 }
             }
+
+        await UpdatePlayerViewPortPoints(PlayerLocation);
+    }
+
+    private int[,] InitializeMap()
+    {
+        int[,] map = new int[HEIGHT, WIDTH];
+
+        for (int height = 0; height < HEIGHT; height++)
+        for (int width = 0; width < WIDTH; width++)
+        {
+            map[height, width] = 0;
+        }
+
+        return map;
     }
 
     protected async override Task OnAfterRenderAsync(bool firstRender)
@@ -129,16 +145,54 @@
         if(x >= WIDTH) x = WIDTH - 1;
         if(y >= HEIGHT) y = HEIGHT - 1;
 
-        if (gameMap[y, x] == 1)
+        if (@lightMap[y, x] == 2)
         {
-            return "wall";
-        }
-        else if (gameMap[y, x] == 2)
-        {
-            return "grass";
+            if (gameMap[y, x] == 1)
+            {
+                return "wall";
+            }
+            else if (gameMap[y, x] == 2)
+            {
+                return "grass";
+            }
         }
 
         return "hidden";
     }
 
+    // Taken from http://www.roguebasin.com/index.php?title=Eligloscode
+    // Modified to fit in my game
+    private int[,] FOV()
+    {
+        float x, y;
+        int i;
+
+        int[,] map = InitializeMap();
+
+        for (i = 0; i < 360; i++)
+        {
+            x = (float)Math.Cos(i * 0.01745f);
+            y = (float)Math.Sin(i * 0.01745f);
+            DoFov(x, y, map);
+        };
+
+        return map;
+    }
+
+    private void DoFov(float x, float y, int[,] map)
+    {
+        int i;
+        float ox, oy;
+        ox = (float)PlayerLocation.X + 0.5f;
+        oy = (float)PlayerLocation.Y + 0.5f;
+
+        for (i = 0; i < 360; i++)
+        {
+            map[(int)oy,(int)ox] = 2;
+            if (gameMap[(int)oy,(int)ox] == 1) // if tile is a wall
+                return;
+            ox += x;
+            oy += y;
+        };
+    }
 }
