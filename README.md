@@ -8,7 +8,7 @@ Things are being kept simple right now versus elegant as I work through various
 aspects of creating roguelikes. As I figure out various aspects the code will
 be written better. Things are a little ugly rightn now. LOL!
 
-![New](screenshots/new.png)
+![New](screenshots/new-tileset.png)
 
 ![Old](screenshots/demo.png)
 
