@@ -8,7 +8,9 @@ Things are being kept simple right now versus elegant as I work through various
 aspects of creating roguelikes. As I figure out various aspects the code will
 be written better. Things are a little ugly rightn now. LOL!
 
-![Demo](screenshots/demo.png)
+![New](screenshots/new.png)
+
+![Old](screenshots/demo.png)
 
 ## Videos
 
