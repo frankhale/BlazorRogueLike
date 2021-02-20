@@ -1,8 +1,16 @@
 @import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    /* font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; */
+    font-family: 'VT323', monospace;
+    background-color: #000;
 }
+
+* {
+    color: #fff;
+}
+
 
 a, .btn-link {
     color: #0366d6;
@@ -54,64 +62,70 @@ a, .btn-link {
 
 .game-field {
     outline: none;
+    /* zoom: 175%; */
+    margin: 0 auto;
 }
 
-.player {
-    background: url('/simple-tileset-full.png') -16px 0px;
-    height: 16px;
-    width: 16px;
+.game-info {
+    font-size: 32px !important;
 }
 
 .wall {
-    background: url('/simple-tileset-full.png') 0 -16px;
-    height: 16px;
-    width: 16px;
+    background: url('/tileset2.png') 0 0;
+    height: 24px;
+    width: 24px;
+}
+
+.player {
+    background: url('/tileset2.png') -72px 0;
+    height: 24px;
+    width: 24px;
 }
 
 .grass {
-    background: url('/simple-tileset-full.png') -48px 0px;
+    background: url('/tileset2.png') -216px 0px;
+    height: 24px;
+    width: 24px;
+}
+
+.coin {
+    background: url('/tileset2.png') -336px 0px;
+    height: 24px;
+    width: 24px;
+}
+
+.potion {
+    background: url('/tileset2.png') -24px 0px;
+    height: 24px;
+    width: 24px;
+}
+
+.treasure-chest {
+    background: url('/tileset2.png') -312px 0px;
+    height: 24px;
+    width: 24px;
+}
+
+/*.ladder-down {
+    background: url('/tileset2.png') -48px -32px;
     height: 16px;
     width: 16px;
 }
 
-.ladder-down {
-    background: url('/simple-tileset-full.png') -48px -32px;
-    height: 16px;
-    width: 16px;
-}
-
-.spider {
-    background: url('/simple-tileset-full.png') -16px -32px;
+ .spider {
+    background: url('/tileset2.png') -16px -32px;
     height: 16px;
     width: 16px;
 }
 
 .snake {
-    background: url('/simple-tileset-full.png') -16px -16px;
+    background: url('/tileset2.png') -16px -16px;
     height: 16px;
     width: 16px;
-}
-
-.potion {
-    background: url('/simple-tileset-full.png') -32px -32px;
-    height: 16px;
-    width: 16px;
-}
-
-.treasure-chest {
-    background: url('/simple-tileset-full.png') 0px -32px;
-    height: 16px;
-    width: 16px;
-}
-
-.coin {
-    background: url('/simple-tileset-full.png') -32px -16px;
-    height: 16px;
-    width: 16px;
-}
+} */
 
 .hidden {
-    background-color: #000;
-    height: 16px;
-    width: 16px;
+    background-color: #111;
+    height: 24px;
+    width: 24px;
 }

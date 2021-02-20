@@ -2,19 +2,20 @@
 
 @using System.Drawing
 @using System.Timers
+@using GoRogue.MapGeneration
+@using GoRogue.MapViews;
+@using Troschuetz.Random.Generators
 @inject IJSRuntime JSRuntime
 
-<div class="container-fluid">
-    <div class="row">
+<div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown @ref="gameFieldDiv">
+    <div class="row justify-content-center game-info">
         <div>Health: @Health</div>
         &nbsp;|&nbsp;
         <div>Score: @Score</div>
     </div>
-</div>
-<div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown @ref="gameFieldDiv">
     @for (int y = ViewPort.Y; y < ViewPort.Height; y++)
     {
-        <div class="row">
+        <div class="row justify-content-center">
             @for (int x = ViewPort.X; x < ViewPort.Width; x++)
             {
                 if (PlayerLocation.X == x && PlayerLocation.Y == y)
@@ -31,23 +32,23 @@
 
 @code
 {
-    private int Health = 100;
+    private int Health = 50;
     private int Score = 0;
     private const int CoinValue = 50;
     private const int PotionValue = 25;
-    private int TotalNumberOfCoins = 300;
+    private int TotalNumberOfCoins = 150;
     private int TotalNumberOfPotions = 50;
     private Random random = new Random();
     private List<Point> CoinLocations = new List<Point>();
     private List<Point> PotionLocations = new List<Point>();
     private List<Point> EnemyLocations = new List<Point>();
     private ElementReference gameFieldDiv;
-    private Point PlayerLocation = new Point { X = 5, Y = 5 };
-    private int ViewPortHeight = 20;
+    private Point PlayerLocation;
+    private int ViewPortHeight = 12;
     private int ViewPortWidth = 25;
     private Rectangle ViewPort;
-    private const int WIDTH = 100;
-    private const int HEIGHT = 80;
+    private const int WIDTH = 150;
+    private const int HEIGHT = 150;
     private int[,] gameMap = new int[HEIGHT, WIDTH];
     private int[,] lightMap = new int[HEIGHT, WIDTH];
 
@@ -60,7 +61,7 @@
         if (viewPortX > (WIDTH - (ViewPortWidth * 2))) viewPortX = (WIDTH - (ViewPortWidth * 2));
 
         if (viewPortY < 0) viewPortY = Math.Max(0, viewPortY);
-        if (viewPortY > (HEIGHT - (ViewPortHeight *2))) viewPortY = (HEIGHT - (ViewPortHeight *2));
+        if (viewPortY > (HEIGHT - (ViewPortHeight * 2))) viewPortY = (HEIGHT - (ViewPortHeight * 2));
 
         int viewPortWidth = viewPortX + (ViewPortWidth * 2);
         int viewPortHeight = viewPortY + (ViewPortHeight * 2);
@@ -72,28 +73,8 @@
 
     protected override void OnInitialized()
     {
-        for (int height = 0; height < HEIGHT; height++)
-        {
-            for (int width = 0; width < WIDTH; width++)
-            {
-                if (height == 0 || width == 0 || height == HEIGHT - 1 || width == WIDTH - 1)
-                {
-                    gameMap[height, width] = 1;
-                }
-                else
-                {
-                    if(random.Next(0, 100) <= 5 && height != PlayerLocation.Y && width != PlayerLocation.X)
-                    {
-                        gameMap[height, width] = 1;
-                    }
-                    else
-                    {
-                        gameMap[height, width] = 2;
-                    }
-                }
-            }
-        }
-
+        gameMap = GenerateMapWithRectangularRooms(WIDTH, HEIGHT, 35, 4, 15);
+    
         UpdatePlayerViewPortPoints(PlayerLocation);
 
         SpawnCoins();
@@ -104,18 +85,49 @@
         timer.Enabled = true;
     }
 
+    private int[,] GenerateMapWithRectangularRooms(int width, int height, int maxRooms, int roomMinSize, int roomMaxSize)
+    {
+        var map = new ArrayMap<bool>(width, height);
+        QuickGenerators.GenerateRandomRoomsMap(map, new StandardGenerator(), maxRooms, roomMinSize, roomMaxSize, 5);
+
+        var result = new int[height, width];
+
+        for (int y = 0; y < map.Height; y++)
+        {
+            for (int x = 0; x < map.Width; x++)
+            {
+                if (map[x, y])
+                {
+                    result[y, x] = 2;
+
+                    if(PlayerLocation.IsEmpty)
+                    {
+                        PlayerLocation = new Point(x, y);
+                    }
+                }
+                else
+                {
+                    result[y, x] = 1;
+                }
+            }
+        }
+
+        return result;
+    }
+
     private Point GenerateRandomPoint()
     {
         int h = 0;
         int w = 0;
 
-        do {
-            h = random.Next(0, HEIGHT-1);
-            w = random.Next(0, WIDTH-1);
+        do
+        {
+            h = random.Next(0, HEIGHT - 1);
+            w = random.Next(0, WIDTH - 1);
         }
         // We are only checking to see if the tile is a wall and now if we
         // already placed some other object. FIX ME LATER!
-        while(gameMap[h, w] == 1);
+        while (gameMap[h, w] == 1);
 
         return new Point(w, h);
     }
@@ -152,10 +164,10 @@
         int[,] map = new int[HEIGHT, WIDTH];
 
         for (int height = 0; height < HEIGHT; height++)
-        for (int width = 0; width < WIDTH; width++)
-        {
-            map[height, width] = 0;
-        }
+            for (int width = 0; width < WIDTH; width++)
+            {
+                map[height, width] = 0;
+            }
 
         return map;
     }
@@ -233,8 +245,8 @@
 
     private string GetTileClassName(int x, int y)
     {
-        if(x >= WIDTH) x = WIDTH - 1;
-        if(y >= HEIGHT) y = HEIGHT - 1;
+        if (x >= WIDTH) x = WIDTH - 1;
+        if (y >= HEIGHT) y = HEIGHT - 1;
 
         if (@lightMap[y, x] == 2)
         {
@@ -287,10 +299,10 @@
         ox = (float)PlayerLocation.X + 0.5f;
         oy = (float)PlayerLocation.Y + 0.5f;
 
-        for (i = 0; i < 360; i++)
+        for (i = 0; i < 25; i++)
         {
-            map[(int)oy,(int)ox] = 2;
-            if (gameMap[(int)oy,(int)ox] == 1) // if tile is a wall
+            map[(int)oy, (int)ox] = 2;
+            if (gameMap[(int)oy, (int)ox] == 1) // if tile is a wall
                 return;
             ox += x;
             oy += y;
