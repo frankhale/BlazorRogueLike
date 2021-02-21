@@ -1,9 +1,10 @@
 ﻿@page "/"
 
+@using System
 @using System.Drawing
 @using System.Timers
 @using GoRogue.MapGeneration
-@using GoRogue.MapViews;
+@using GoRogue.MapViews
 @using Troschuetz.Random.Generators
 @inject IJSRuntime JSRuntime
 
@@ -32,12 +33,21 @@
 
 @code
 {
+    private enum Movement
+    {
+        LEFT,
+        RIGHT,
+        UP,
+        DOWN
+    }
+
     private int Health = 50;
     private int Score = 0;
     private const int CoinValue = 50;
     private const int PotionValue = 25;
     private int TotalNumberOfCoins = 150;
     private int TotalNumberOfPotions = 50;
+    private int TotalNumberOfEnemies = 50;
     private Random random = new Random();
     private List<Point> CoinLocations = new List<Point>();
     private List<Point> PotionLocations = new List<Point>();
@@ -68,7 +78,7 @@
 
         ViewPort = new Rectangle(viewPortX, viewPortY, viewPortWidth, viewPortHeight);
 
-        lightMap = FOV();
+        lightMap = RB_FOV();
     }
 
     protected override void OnInitialized()
@@ -79,6 +89,7 @@
 
         SpawnCoins();
         SpawnPotions();
+        SpawnEnemies();
 
         var timer = new Timer(1000);
         timer.Elapsed += new ElapsedEventHandler(GameLoop);
@@ -154,6 +165,17 @@
         }
     }
 
+    private void SpawnEnemies()
+    {
+        if (EnemyLocations.Count() == 0)
+        {
+            for (int i = 0; i < TotalNumberOfEnemies; i++)
+            {
+                EnemyLocations.Add(GenerateRandomPoint());
+            }
+        }
+    }
+
     private void GameLoop(object source, ElapsedEventArgs e)
     {
         // TODO: Do some game updates here...
@@ -200,49 +222,78 @@
             }
         }
 
-        lightMap = FOV();
+        lightMap = RB_FOV();
+    }
+
+    private bool IsTileWalkable(int x, int y, Movement? movementDirection)
+    {
+        if(movementDirection == null) return false;
+
+        Func<int, int, int, bool> tileGameMapTraversable = (int _x, int _y, int tId) => 
+        {
+            return (
+               (movementDirection == Movement.UP && gameMap[_y - 1, _x] == tId) ||
+               (movementDirection == Movement.DOWN && gameMap[_y + 1, _x] == tId) ||
+               (movementDirection == Movement.LEFT && gameMap[_y, _x - 1] == tId) ||
+               (movementDirection == Movement.RIGHT && gameMap[_y, _x + 1] == tId)
+            );
+        };
+        
+        Func<int, int, List<Point>, bool> entityLocationTraversable = (int _x, int _y, List<Point> locations) => 
+        {
+            return locations.Any(l => (movementDirection == Movement.UP && l.Y == _y - 1 && l.X == _x) ||
+                                      (movementDirection == Movement.DOWN && l.Y == _y + 1 && l.X == _x) ||
+                                      (movementDirection == Movement.LEFT && l.Y == _y && l.X == _x - 1) ||
+                                      (movementDirection == Movement.RIGHT && l.Y == _y && l.X == _x + 1));
+        };
+
+        return !tileGameMapTraversable(PlayerLocation.X, PlayerLocation.Y, 1) &&
+               !entityLocationTraversable(x, y, EnemyLocations);
+    }
+
+    private Movement? GetMovementDirection(KeyboardEventArgs args)
+    {
+        return args.Key switch
+        {
+            "ArrowUp" => Movement.UP,
+            "ArrowDown" => Movement.DOWN,
+            "ArrowLeft" => Movement.LEFT,
+            "ArrowRight" => Movement.RIGHT,
+            _ => null        
+        };
     }
 
     private void KeyDown(KeyboardEventArgs args)
     {
-        if (args.Key == "ArrowUp")
+        var movementDirection = GetMovementDirection(args);
+
+        if(!IsTileWalkable(PlayerLocation.Y, PlayerLocation.X, movementDirection)) return;
+        
+        if (movementDirection == Movement.UP)
         {
-            if (gameMap[PlayerLocation.Y - 1, PlayerLocation.X] != 1)
-            {
-                PlayerLocation.Y -= 1;
-                UpdateAfterPlayerMoved();
-                UpdatePlayerViewPortPoints(PlayerLocation);
-            }
+            PlayerLocation.Y -= 1;
+            UpdateAfterPlayerMoved();
+            UpdatePlayerViewPortPoints(PlayerLocation);
         }
-        else if (args.Key == "ArrowDown")
+        else if (movementDirection == Movement.DOWN)
         {
-            if (gameMap[PlayerLocation.Y + 1, PlayerLocation.X] != 1)
-            {
-                PlayerLocation.Y += 1;
-                UpdateAfterPlayerMoved();
-                UpdatePlayerViewPortPoints(PlayerLocation);
-            }
+            PlayerLocation.Y += 1;
+            UpdateAfterPlayerMoved();
+            UpdatePlayerViewPortPoints(PlayerLocation);
         }
-        else if (args.Key == "ArrowLeft")
+        else if (movementDirection == Movement.LEFT)
         {
-            if (gameMap[PlayerLocation.Y, PlayerLocation.X - 1] != 1)
-            {
-                PlayerLocation.X -= 1;
-                UpdateAfterPlayerMoved();
-                UpdatePlayerViewPortPoints(PlayerLocation);
-            }
+            PlayerLocation.X -= 1;
+            UpdateAfterPlayerMoved();
+            UpdatePlayerViewPortPoints(PlayerLocation);
         }
-        else if (args.Key == "ArrowRight")
+        else if (movementDirection == Movement.RIGHT)
         {
-            if (gameMap[PlayerLocation.Y, PlayerLocation.X + 1] != 1)
-            {
-                PlayerLocation.X += 1;
-                UpdateAfterPlayerMoved();
-                UpdatePlayerViewPortPoints(PlayerLocation);
-            }
+            PlayerLocation.X += 1;
+            UpdateAfterPlayerMoved();
+            UpdatePlayerViewPortPoints(PlayerLocation);
         }
     }
-
     private string GetTileClassName(int x, int y)
     {
         if (x >= WIDTH) x = WIDTH - 1;
@@ -250,7 +301,7 @@
 
         if (@lightMap[y, x] == 2)
         {
-            if (CoinLocations.Any(p => p.X == x && p.Y == y))
+            if (CoinLocations.Any(c => c.X == x && c.Y == y))
             {
                 return "coin";
             }
@@ -259,6 +310,15 @@
             {
                 return "potion";
             }
+
+            /*if (EnemyLocations.Any(e => e.X == x && e.Y == y))
+            {
+                var eId = random.Next(0,3);
+
+                if(eId == 0) return "spider";
+                if(eId == 1) return "lurcher";
+                if(eId == 2) return "crab";
+            }*/
 
             if (gameMap[y, x] == 1)
             {
@@ -273,9 +333,10 @@
         return "hidden";
     }
 
+    #region FOV FROM ROGUEBASIN
     // Taken from http://www.roguebasin.com/index.php?title=Eligloscode
     // Modified to fit in my game
-    private int[,] FOV()
+    private int[,] RB_FOV()
     {
         float x, y;
         int i;
@@ -286,26 +347,31 @@
         {
             x = (float)Math.Cos(i * 0.01745f);
             y = (float)Math.Sin(i * 0.01745f);
-            DoFov(x, y, map);
+            RB_DoFov(x, y, map);
         };
 
         return map;
     }
 
-    private void DoFov(float x, float y, int[,] map)
+    // Taken from http://www.roguebasin.com/index.php?title=Eligloscode
+    // Modified to fit in my game
+    private void RB_DoFov(float x, float y, int[,] map)
     {
         int i;
         float ox, oy;
         ox = (float)PlayerLocation.X + 0.5f;
         oy = (float)PlayerLocation.Y + 0.5f;
 
-        for (i = 0; i < 25; i++)
+        for (i = 0; i < 360; i++)
         {
             map[(int)oy, (int)ox] = 2;
+
             if (gameMap[(int)oy, (int)ox] == 1) // if tile is a wall
                 return;
+
             ox += x;
             oy += y;
         };
     }
+    #endregion
 }

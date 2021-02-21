@@ -62,7 +62,6 @@ a, .btn-link {
 
 .game-field {
     outline: none;
-    /* zoom: 175%; */
     margin: 0 auto;
 }
 
@@ -106,23 +105,47 @@ a, .btn-link {
     width: 24px;
 }
 
-/*.ladder-down {
-    background: url('/tileset2.png') -48px -32px;
-    height: 16px;
-    width: 16px;
+.spider {
+    background: url('/tileset2.png') -96px -0px;
+    height: 24px;
+    width: 24px;
 }
 
- .spider {
-    background: url('/tileset2.png') -16px -32px;
-    height: 16px;
-    width: 16px;
+.lurcher {
+    background: url('/tileset2.png') -120px -0px;
+    height: 24px;
+    width: 24px;
 }
 
-.snake {
-    background: url('/tileset2.png') -16px -16px;
-    height: 16px;
-    width: 16px;
-} */
+.crab {
+    background: url('/tileset2.png') -288px -0px;
+    height: 24px;
+    width: 24px;
+}
+
+.ladder-down {
+    background: url('/tileset2.png') -168px -0px;
+    height: 24px;
+    width: 24px;
+}
+
+.ladder-up {
+    background: url('/tileset2.png') -192px -0px;
+    height: 24px;
+    width: 24px;
+}
+
+.golden-candle {
+    background: url('/tileset2.png') -144px -0px;
+    height: 24px;
+    width: 24px;
+}
+
+.treasure-chest {
+    background: url('/tileset2.png') -156px -0px;
+    height: 24px;
+    width: 24px;
+}
 
 .hidden {
     background-color: #111;
