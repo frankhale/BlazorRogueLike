@@ -41,6 +41,19 @@
         DOWN
     }
 
+    private enum EntityType
+    {
+        Enemy,
+        Pickup
+    }
+
+    private class Entity
+    {
+        public Point Location { get; set; }
+        public EntityType EntityType { get; set; }
+        public int Id { get; set; }
+    }
+
     private int Health = 50;
     private int Score = 0;
     private const int CoinValue = 50;
@@ -49,9 +62,9 @@
     private int TotalNumberOfPotions = 50;
     private int TotalNumberOfEnemies = 50;
     private Random random = new Random();
-    private List<Point> CoinLocations = new List<Point>();
-    private List<Point> PotionLocations = new List<Point>();
-    private List<Point> EnemyLocations = new List<Point>();
+    private List<Entity> CoinLocations = new List<Entity>();
+    private List<Entity> PotionLocations = new List<Entity>();
+    private List<Entity> EnemyLocations = new List<Entity>();
     private ElementReference gameFieldDiv;
     private Point PlayerLocation;
     private int ViewPortHeight = 12;
@@ -149,7 +162,14 @@
         {
             for (int i = 0; i < TotalNumberOfPotions; i++)
             {
-                PotionLocations.Add(GenerateRandomPoint());
+                PotionLocations.Add( 
+                    new Entity
+                    {
+                        Location = GenerateRandomPoint(),
+                        EntityType = EntityType.Pickup,
+                        Id = 10
+                    }
+                );
             }
         }
     }
@@ -160,7 +180,14 @@
         {
             for (int i = 0; i < TotalNumberOfCoins; i++)
             {
-                CoinLocations.Add(GenerateRandomPoint());
+                CoinLocations.Add(
+                    new Entity
+                    {
+                        Location = GenerateRandomPoint(),
+                        EntityType = EntityType.Pickup,
+                        Id = 11
+                    }
+                );
             }
         }
     }
@@ -171,7 +198,14 @@
         {
             for (int i = 0; i < TotalNumberOfEnemies; i++)
             {
-                EnemyLocations.Add(GenerateRandomPoint());
+                EnemyLocations.Add(
+                    new Entity
+                    {
+                        Location = GenerateRandomPoint(),
+                        EntityType = EntityType.Enemy,
+                        Id = random.Next(0, 3)
+                    }
+                );
             }
         }
     }
@@ -204,18 +238,18 @@
 
     private void UpdateAfterPlayerMoved()
     {
-        var coin = CoinLocations.FirstOrDefault(p => p.X == PlayerLocation.X && p.Y == PlayerLocation.Y);
+        var coin = CoinLocations.FirstOrDefault(p => p.Location.X == PlayerLocation.X && p.Location.Y == PlayerLocation.Y);
 
-        if (!coin.IsEmpty)
+        if (coin != null)
         {
             Score += CoinValue;
             CoinLocations.Remove(coin);
         }
         else
         {
-            var potion = PotionLocations.FirstOrDefault(p => p.X == PlayerLocation.X && p.Y == PlayerLocation.Y);
+            var potion = PotionLocations.FirstOrDefault(p => p.Location.X == PlayerLocation.X && p.Location.Y == PlayerLocation.Y);
 
-            if (!potion.IsEmpty)
+            if (potion != null)
             {
                 Health += PotionValue;
                 PotionLocations.Remove(potion);
@@ -239,16 +273,18 @@
             );
         };
         
-        Func<int, int, List<Point>, bool> entityLocationTraversable = (int _x, int _y, List<Point> locations) => 
+        Func<int, int, List<Entity>, bool> entityLocationTraversable = (int _x, int _y, List<Entity> locations) => 
         {
-            return locations.Any(l => (movementDirection == Movement.UP && l.Y == _y - 1 && l.X == _x) ||
-                                      (movementDirection == Movement.DOWN && l.Y == _y + 1 && l.X == _x) ||
-                                      (movementDirection == Movement.LEFT && l.Y == _y && l.X == _x - 1) ||
-                                      (movementDirection == Movement.RIGHT && l.Y == _y && l.X == _x + 1));
+            return locations.Any(l => (movementDirection == Movement.UP && l.Location.Y == _y - 1 && l.Location.X == _x) ||
+                                      (movementDirection == Movement.DOWN && l.Location.Y == _y + 1 && l.Location.X == _x) ||
+                                      (movementDirection == Movement.LEFT && l.Location.Y == _y && l.Location.X == _x - 1) ||
+                                      (movementDirection == Movement.RIGHT && l.Location.Y == _y && l.Location.X == _x + 1));
         };
 
+        var e = entityLocationTraversable(x, y, EnemyLocations);
+
         return !tileGameMapTraversable(PlayerLocation.X, PlayerLocation.Y, 1) &&
-               !entityLocationTraversable(x, y, EnemyLocations);
+               !entityLocationTraversable(PlayerLocation.X, PlayerLocation.Y, EnemyLocations);
     }
 
     private Movement? GetMovementDirection(KeyboardEventArgs args)
@@ -301,24 +337,23 @@
 
         if (@lightMap[y, x] == 2)
         {
-            if (CoinLocations.Any(c => c.X == x && c.Y == y))
+            if (CoinLocations.Any(c => c.Location.X == x && c.Location.Y == y))
             {
                 return "coin";
             }
 
-            if (PotionLocations.Any(p => p.X == x && p.Y == y))
+            if (PotionLocations.Any(p => p.Location.X == x && p.Location.Y == y))
             {
                 return "potion";
             }
 
-            /*if (EnemyLocations.Any(e => e.X == x && e.Y == y))
+            var enemy = EnemyLocations.FirstOrDefault(e => e.Location.X == x && e.Location.Y == y);
+            if (enemy != null)
             {
-                var eId = random.Next(0,3);
-
-                if(eId == 0) return "spider";
-                if(eId == 1) return "lurcher";
-                if(eId == 2) return "crab";
-            }*/
+                if(enemy.Id == 0) return "spider";
+                if(enemy.Id == 1) return "lurcher";
+                if(enemy.Id == 2) return "crab";
+            }
 
             if (gameMap[y, x] == 1)
             {
