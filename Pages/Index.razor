@@ -10,9 +10,9 @@
 
 <div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown @ref="gameFieldDiv">
     <div class="row justify-content-center game-info">
-        <div>Health: @Health</div>
+        <div>Health: @PlayerHealth</div>
         &nbsp;|&nbsp;
-        <div>Score: @Score</div>
+        <div>Score: @PlayerScore</div>
     </div>
     @for (int y = ViewPort.Y; y < ViewPort.Height; y++)
     {
@@ -47,15 +47,39 @@
         Pickup
     }
 
+    private enum EnemyType
+    {
+        Spider = 0,
+        Lurcher = 1,
+        Crab = 2
+    }
+
+    private class TileWalkableInfo
+    {
+        public bool Walkable { get; set; }
+        public Point Location { get;set; }
+    }
+
+    private abstract class Component { }    
+
+    private class StatComponent : Component {
+        public int Health { get; set; }
+        public int Attack { get; set; }        
+    }
+
     private class Entity
     {
         public Point Location { get; set; }
         public EntityType EntityType { get; set; }
+        public List<Component> Components { get; set; }
         public int Id { get; set; }
     }
 
-    private int Health = 50;
-    private int Score = 0;
+    private Point PlayerLocation;
+    private int PlayerHealth = 20;
+    private int PlayerScore = 0;
+    private int PlayerAttack = 1;
+    
     private const int CoinValue = 50;
     private const int PotionValue = 25;
     private int TotalNumberOfCoins = 150;
@@ -65,8 +89,8 @@
     private List<Entity> CoinLocations = new List<Entity>();
     private List<Entity> PotionLocations = new List<Entity>();
     private List<Entity> EnemyLocations = new List<Entity>();
-    private ElementReference gameFieldDiv;
-    private Point PlayerLocation;
+    private List<Entity> TreasureChests = new List<Entity>();
+    private ElementReference gameFieldDiv;    
     private int ViewPortHeight = 12;
     private int ViewPortWidth = 25;
     private Rectangle ViewPort;
@@ -198,12 +222,25 @@
         {
             for (int i = 0; i < TotalNumberOfEnemies; i++)
             {
+                int id = random.Next(0, 3);
+                var enemyType = Enum.Parse(typeof(EnemyType), id.ToString());
+                var statComponent = enemyType switch {
+                    EnemyType.Spider => new StatComponent { Health = 2, Attack = 1},
+                    EnemyType.Crab => new StatComponent { Health = 10, Attack = 5},
+                    EnemyType.Lurcher => new StatComponent { Health = 10, Attack = 10},
+                    _ => null
+                };
+
                 EnemyLocations.Add(
                     new Entity
                     {
                         Location = GenerateRandomPoint(),
                         EntityType = EntityType.Enemy,
-                        Id = random.Next(0, 3)
+                        Components = new List<Component>
+                        {
+                            statComponent
+                        },
+                        Id = id
                     }
                 );
             }
@@ -270,7 +307,7 @@
 
         if (coin != null)
         {
-            Score += CoinValue;
+            PlayerScore += CoinValue;
             CoinLocations.Remove(coin);
         }
         else
@@ -279,7 +316,7 @@
 
             if (potion != null)
             {
-                Health += PotionValue;
+                PlayerHealth += PotionValue;
                 PotionLocations.Remove(potion);
             }
         }
@@ -303,16 +340,41 @@
             );
         };
         
-        Func<int, int, List<Entity>, bool> entityLocationTraversable = (int _x, int _y, List<Entity> locations) => 
+        Func<int, int, List<Entity>, TileWalkableInfo> entityLocationTraversable = (int _x, int _y, List<Entity> locations) => 
         {
-            return locations.Any(l => (movementDirection == Movement.UP && l.Location.Y == _y - 1 && l.Location.X == _x) ||
+            var e =  locations.FirstOrDefault(l => (movementDirection == Movement.UP && l.Location.Y == _y - 1 && l.Location.X == _x) ||
                                       (movementDirection == Movement.DOWN && l.Location.Y == _y + 1 && l.Location.X == _x) ||
                                       (movementDirection == Movement.LEFT && l.Location.Y == _y && l.Location.X == _x - 1) ||
                                       (movementDirection == Movement.RIGHT && l.Location.Y == _y && l.Location.X == _x + 1));
+
+            if(e != null)
+            {
+                return new TileWalkableInfo
+                {
+                    Walkable = false,
+                    Location = e.Location
+                };
+            }
+
+            return new TileWalkableInfo
+            {
+                Walkable = true,
+                Location = new Point(_x, _y)
+            }; 
         };
 
+        // we are going to initiate an attack sequence here if the location is an enemy
+        // we want to refactor this so that we have more information about tiles when we
+        // want to attempt to walk onto them
+        var enemy = entityLocationTraversable(x, y, EnemyLocations);
+
+        if(!enemy.Walkable)
+        {
+            InitiateAttackSequence(x, y);
+        }
+
         return !tileGameMapTraversable(x, y, 1 /* Wall */) &&
-               !entityLocationTraversable(x, y, EnemyLocations);
+               !enemy.Walkable;
     }
 
     private Movement? GetMovementDirection(KeyboardEventArgs args)
@@ -325,6 +387,38 @@
             "ArrowRight" => Movement.RIGHT,
             _ => null        
         };
+    }
+
+    private void InitiateAttackSequence(int x, int y) 
+    { 
+        var enemy = EnemyLocations.FirstOrDefault(e => e.Location.X == x && e.Location.Y == y);
+
+        if(enemy != null)
+        {
+            var enemyStatsComponent = (StatComponent) enemy.Components.FirstOrDefault(e => typeof(e) == typeof(StatComponent));
+
+            if(enemyStatsComponent != null)
+            {
+                var criticalStrike = random.Next(0, 100) <= 20;
+
+                if(criticalStrike) {
+                    enemyStatsComponent.Health -= PlayerAttack * 2;
+
+                    if(enemyStatsComponent.Health <= 0) 
+                    {
+                        var treasureChestLocation = new Point(enemy.Location.X, enemy.Location.Y);
+                        
+                        EnemyLocations.Remove(enemy);
+                        TreasureChests.Add(new Entity
+                        {
+                            Id = 20,
+                            Location = treasureChestLocation,
+                            EntityType = EntityType.Pickup,
+                        });
+                    }   
+                }
+            }            
+        }        
     }
 
     private void KeyDown(KeyboardEventArgs args)
