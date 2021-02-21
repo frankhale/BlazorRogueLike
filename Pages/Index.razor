@@ -236,6 +236,34 @@
         }
     }
 
+    private void MoveEnemies()
+    {    
+        foreach(var enemy in EnemyLocations)
+        {
+            var direction = random.Next(0,4);
+            Point loc = new Point(enemy.Location.X, enemy.Location.Y);
+
+            if(direction == 0 && IsTileWalkable(enemy.Location.X, enemy.Location.Y, Movement.UP))
+            {                
+                loc.Y -= 1;
+            }
+            else if(direction == 0 && IsTileWalkable(enemy.Location.X, enemy.Location.Y, Movement.DOWN)) 
+            {
+                loc.Y += 1;
+            }
+            else if(direction == 0 && IsTileWalkable(enemy.Location.X, enemy.Location.Y, Movement.LEFT)) 
+            {
+                loc.X -= 1;
+            }
+            else if(direction == 0 && IsTileWalkable(enemy.Location.X, enemy.Location.Y, Movement.RIGHT)) 
+            {
+                loc.X += 1;
+            }
+
+            enemy.Location = loc;
+        }
+    }
+
     private void UpdateAfterPlayerMoved()
     {
         var coin = CoinLocations.FirstOrDefault(p => p.Location.X == PlayerLocation.X && p.Location.Y == PlayerLocation.Y);
@@ -256,6 +284,8 @@
             }
         }
 
+        MoveEnemies();
+        
         lightMap = RB_FOV();
     }
 
@@ -281,10 +311,8 @@
                                       (movementDirection == Movement.RIGHT && l.Location.Y == _y && l.Location.X == _x + 1));
         };
 
-        var e = entityLocationTraversable(x, y, EnemyLocations);
-
-        return !tileGameMapTraversable(PlayerLocation.X, PlayerLocation.Y, 1) &&
-               !entityLocationTraversable(PlayerLocation.X, PlayerLocation.Y, EnemyLocations);
+        return !tileGameMapTraversable(x, y, 1 /* Wall */) &&
+               !entityLocationTraversable(x, y, EnemyLocations);
     }
 
     private Movement? GetMovementDirection(KeyboardEventArgs args)
@@ -303,7 +331,7 @@
     {
         var movementDirection = GetMovementDirection(args);
 
-        if(!IsTileWalkable(PlayerLocation.Y, PlayerLocation.X, movementDirection)) return;
+        if(!IsTileWalkable(PlayerLocation.X, PlayerLocation.Y, movementDirection)) return;
         
         if (movementDirection == Movement.UP)
         {
