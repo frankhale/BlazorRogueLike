@@ -13,6 +13,8 @@
         <div>Health: @PlayerHealth</div>
         &nbsp;|&nbsp;
         <div>Score: @PlayerScore</div>
+        &nbsp;|&nbsp;
+        <div>Enemies Killed: @PlayerEnemiesKilled</div>
     </div>
     @if(WinLoseMessage == string.Empty)
     {
@@ -87,7 +89,8 @@
     private Point PlayerLocation;
     private int PlayerHealth = 30;
     private int PlayerScore = 0;
-    private int PlayerAttack = 1;    
+    private int PlayerAttack = 1;
+    private int PlayerEnemiesKilled = 0;
     private const int CoinValue = 50;
     private const int PotionValue = 25;
     private int TotalNumberOfCoins = 150;
@@ -457,6 +460,8 @@
 
                 if(enemyStatsComponent.Health <= 0) 
                 {
+                    PlayerEnemiesKilled += 1;
+
                     var treasureChestLocation = new Point(enemy.Location.X, enemy.Location.Y);
                     
                     EnemyLocations.Remove(enemy);
