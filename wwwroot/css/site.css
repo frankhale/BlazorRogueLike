@@ -141,12 +141,6 @@ a, .btn-link {
     width: 24px;
 }
 
-.treasure-chest {
-    background: url('/tileset2.png') -156px -0px;
-    height: 24px;
-    width: 24px;
-}
-
 .hidden {
     background-color: #111;
     height: 24px;

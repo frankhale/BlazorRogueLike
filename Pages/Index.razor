@@ -14,20 +14,27 @@
         &nbsp;|&nbsp;
         <div>Score: @PlayerScore</div>
     </div>
-    @for (int y = ViewPort.Y; y < ViewPort.Height; y++)
+    @if(WinLoseMessage == string.Empty)
     {
-        <div class="row justify-content-center">
-            @for (int x = ViewPort.X; x < ViewPort.Width; x++)
-            {
-                if (PlayerLocation.X == x && PlayerLocation.Y == y)
+        @for (int y = ViewPort.Y; y < ViewPort.Height; y++)
+        {
+            <div class="row justify-content-center">
+                @for (int x = ViewPort.X; x < ViewPort.Width; x++)
                 {
-                    <span class="player"></span>
-                    continue;
-                }
+                    if (PlayerLocation.X == x && PlayerLocation.Y == y)
+                    {
+                        <span class="player"></span>
+                        continue;
+                    }
 
-                <span class=@(GetTileClassName(x, y))></span>
-            }
-        </div>
+                    <span class=@(GetTileClassName(x, y))></span>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <div class="game-info">@WinLoseMessage</div>
     }
 </div>
 
@@ -58,6 +65,7 @@
     {
         public bool Walkable { get; set; }
         public Point Location { get;set; }
+        public Entity Entity { get; set; }
     }
 
     private abstract class Component { }    
@@ -75,11 +83,11 @@
         public int Id { get; set; }
     }
 
+    private string WinLoseMessage { get; set; } = string.Empty;
     private Point PlayerLocation;
-    private int PlayerHealth = 20;
+    private int PlayerHealth = 30;
     private int PlayerScore = 0;
-    private int PlayerAttack = 1;
-    
+    private int PlayerAttack = 1;    
     private const int CoinValue = 50;
     private const int PotionValue = 25;
     private int TotalNumberOfCoins = 150;
@@ -226,8 +234,8 @@
                 var enemyType = Enum.Parse(typeof(EnemyType), id.ToString());
                 var statComponent = enemyType switch {
                     EnemyType.Spider => new StatComponent { Health = 2, Attack = 1},
-                    EnemyType.Crab => new StatComponent { Health = 10, Attack = 5},
-                    EnemyType.Lurcher => new StatComponent { Health = 10, Attack = 10},
+                    EnemyType.Crab => new StatComponent { Health = 10, Attack = 2},
+                    EnemyType.Lurcher => new StatComponent { Health = 10, Attack = 3},
                     _ => null
                 };
 
@@ -303,24 +311,40 @@
 
     private void UpdateAfterPlayerMoved()
     {
-        var coin = CoinLocations.FirstOrDefault(p => p.Location.X == PlayerLocation.X && p.Location.Y == PlayerLocation.Y);
+        var coin = CoinLocations.FirstOrDefault(c => c.Location.X == PlayerLocation.X && c.Location.Y == PlayerLocation.Y);
+        var potion = PotionLocations.FirstOrDefault(p => p.Location.X == PlayerLocation.X && p.Location.Y == PlayerLocation.Y);
+        var treasureChest = TreasureChests.FirstOrDefault(t => t.Location.X == PlayerLocation.X && t.Location.Y == PlayerLocation.Y);
 
         if (coin != null)
         {
             PlayerScore += CoinValue;
             CoinLocations.Remove(coin);
-        }
-        else
+        } 
+        else if (potion != null)
         {
-            var potion = PotionLocations.FirstOrDefault(p => p.Location.X == PlayerLocation.X && p.Location.Y == PlayerLocation.Y);
+            PlayerHealth += PotionValue;
+            PotionLocations.Remove(potion);
+        } 
+        else if (treasureChest != null)
+        {
+            var healthRecoveryChance = random.Next(0, 100) <= 20;
+            var extraScoreChange = random.Next(0, 100) <= 15;
 
-            if (potion != null)
+            if(healthRecoveryChance) 
             {
-                PlayerHealth += PotionValue;
-                PotionLocations.Remove(potion);
+                PlayerHealth += 5;
             }
-        }
+                        
+            if(extraScoreChange)
+            {
+                PlayerScore += 25;
+            }
 
+            PlayerScore += 10;
+
+            TreasureChests.Remove(treasureChest);
+        }
+        
         MoveEnemies();
         
         lightMap = RB_FOV();
@@ -330,9 +354,19 @@
     {
         if(movementDirection == null) return false;
 
+        var isPlayer = PlayerLocation.X == x && PlayerLocation.Y == y;
+
+        Func<int, int, bool> tileIsPlayerTile = (int _x, int _y) => 
+        {
+            return ((movementDirection == Movement.UP && PlayerLocation.Y == _y - 1 && PlayerLocation.X == _x) ||
+                    (movementDirection == Movement.DOWN && PlayerLocation.Y == _y + 1 && PlayerLocation.X == _x) ||
+                    (movementDirection == Movement.LEFT && PlayerLocation.Y == _y && PlayerLocation.X == _x - 1) ||
+                    (movementDirection == Movement.RIGHT && PlayerLocation.Y == _y && PlayerLocation.X == _x + 1));
+        };
+
         Func<int, int, int, bool> tileGameMapTraversable = (int _x, int _y, int tId) => 
         {
-            return (
+            return !(
                (movementDirection == Movement.UP && gameMap[_y - 1, _x] == tId) ||
                (movementDirection == Movement.DOWN && gameMap[_y + 1, _x] == tId) ||
                (movementDirection == Movement.LEFT && gameMap[_y, _x - 1] == tId) ||
@@ -352,29 +386,32 @@
                 return new TileWalkableInfo
                 {
                     Walkable = false,
-                    Location = e.Location
+                    Location = e.Location,
+                    Entity = e
                 };
             }
 
             return new TileWalkableInfo
             {
                 Walkable = true,
-                Location = new Point(_x, _y)
+                Location = new Point(_x, _y)                
             }; 
         };
+
+        if(tileIsPlayerTile(x, y)) return false;
 
         // we are going to initiate an attack sequence here if the location is an enemy
         // we want to refactor this so that we have more information about tiles when we
         // want to attempt to walk onto them
         var enemy = entityLocationTraversable(x, y, EnemyLocations);
 
-        if(!enemy.Walkable)
+        if(!enemy.Walkable && isPlayer)
         {
-            InitiateAttackSequence(x, y);
+            InitiateAttackSequence(enemy.Location.X, enemy.Location.Y);
         }
 
-        return !tileGameMapTraversable(x, y, 1 /* Wall */) &&
-               !enemy.Walkable;
+        return tileGameMapTraversable(x, y, 1 /* Wall */) &&            
+               enemy.Walkable;
     }
 
     private Movement? GetMovementDirection(KeyboardEventArgs args)
@@ -395,27 +432,45 @@
 
         if(enemy != null)
         {
-            var enemyStatsComponent = (StatComponent) enemy.Components.FirstOrDefault(e => typeof(e) == typeof(StatComponent));
+            var enemyStatsComponent = (StatComponent) enemy.Components.FirstOrDefault(e => e.GetType() == typeof(StatComponent));
 
             if(enemyStatsComponent != null)
             {
-                var criticalStrike = random.Next(0, 100) <= 20;
+                var playerCriticalStrike = random.Next(0, 100) <= 20;
+                var enemyCriticalStrike = random.Next(0, 100) <= 20; 
 
-                if(criticalStrike) {
-                    enemyStatsComponent.Health -= PlayerAttack * 2;
+                if(playerCriticalStrike) {
+                    enemyStatsComponent.Health -= PlayerAttack + 2 * 2;                       
+                }
+                else
+                {
+                    enemyStatsComponent.Health -= PlayerAttack;
+                }
 
-                    if(enemyStatsComponent.Health <= 0) 
+                if(enemyCriticalStrike) {
+                    PlayerHealth -= enemyStatsComponent.Attack + 2 * 2;                    
+                }
+                else
+                {
+                    PlayerHealth -= enemyStatsComponent.Attack;
+                }
+
+                if(enemyStatsComponent.Health <= 0) 
+                {
+                    var treasureChestLocation = new Point(enemy.Location.X, enemy.Location.Y);
+                    
+                    EnemyLocations.Remove(enemy);
+                    TreasureChests.Add(new Entity
                     {
-                        var treasureChestLocation = new Point(enemy.Location.X, enemy.Location.Y);
-                        
-                        EnemyLocations.Remove(enemy);
-                        TreasureChests.Add(new Entity
-                        {
-                            Id = 20,
-                            Location = treasureChestLocation,
-                            EntityType = EntityType.Pickup,
-                        });
-                    }   
+                        Id = 20,
+                        Location = treasureChestLocation,
+                        EntityType = EntityType.Pickup,
+                    });
+                }
+
+                if(PlayerHealth <= 0)
+                {
+                    WinLoseMessage = "You ded son!";             
                 }
             }            
         }        
@@ -467,6 +522,11 @@
             if (PotionLocations.Any(p => p.Location.X == x && p.Location.Y == y))
             {
                 return "potion";
+            }
+
+            if (TreasureChests.Any(t => t.Location.X == x && t.Location.Y == y))
+            {
+                return "treasure-chest";
             }
 
             var enemy = EnemyLocations.FirstOrDefault(e => e.Location.X == x && e.Location.Y == y);
