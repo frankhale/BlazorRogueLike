@@ -10,7 +10,7 @@
 
 <div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown @ref="gameFieldDiv">
     <div class="row justify-content-center game-info">
-        <!--<div>X: @PlayerLocation.X | Y: @PlayerLocation.Y | W: @GoldenCandle.Location.X | @GoldenCandle.Location.Y | </div>-->
+        <!--<div>X: @PlayerLocation.X | Y: @PlayerLocation.Y | W: @GoldenCandle.Location.X | @GoldenCandle.Location.Y |  </div>-->
         <div>Health: @PlayerHealth</div>        
         <div>&nbsp;|&nbsp;Score: @PlayerScore</div>
         <div>&nbsp;|&nbsp;Enemies Killed: @PlayerEnemiesKilled</div>
@@ -196,12 +196,6 @@
     {
         int h = 0;
         int w = 0;
-
-        if(randomHighLocation)
-        {
-            h = HEIGHT - 25;
-            w = WIDTH - 25;
-        }
 
         do
         {
@@ -390,7 +384,7 @@
         else if (goldenCandle)
         {
             PlayerScore += 10000;
-            WinLoseMessage = "YOU WIN!!!";
+            WinLoseMessage = "YOU WIN SON!!!";
         }
 
         MoveEnemies();
