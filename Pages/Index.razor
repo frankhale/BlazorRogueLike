@@ -70,6 +70,12 @@
         Crab = 2
     }
 
+    private enum WhoAmI
+    {
+        Player,
+        Enemy
+    }
+
     private class TileWalkableInfo
     {
         public bool Walkable { get; set; }
@@ -108,8 +114,9 @@
     private Random random = new Random();
     private List<Entity> CoinLocations = new List<Entity>();
     private List<Entity> PotionLocations = new List<Entity>();
-    private List<Entity> EnemyLocations = new List<Entity>();
-    private List<Entity> TreasureChests = new List<Entity>();
+    private List<Entity> EnemyLocations = new List<Entity>();    
+    private List<Entity> TreasureChestLocations = new List<Entity>();
+    private Entity GoldenCandle;
     private ElementReference gameFieldDiv;    
     private int ViewPortHeight = 12;
     private int ViewPortWidth = 25;
@@ -118,7 +125,7 @@
     private const int HEIGHT = 150;
     private int[,] gameMap = new int[HEIGHT, WIDTH];
     private int[,] lightMap = new int[HEIGHT, WIDTH];
-
+    
     private void UpdatePlayerViewPortPoints(Point PlayerLocation)
     {
         int viewPortX = PlayerLocation.X - ViewPortWidth;
@@ -135,7 +142,7 @@
 
         ViewPort = new Rectangle(viewPortX, viewPortY, viewPortWidth, viewPortHeight);
 
-        lightMap = RB_FOV();
+        //lightMap = RB_FOV();
     }
 
     protected override void OnInitialized()
@@ -147,6 +154,7 @@
         SpawnCoins();
         SpawnPotions();
         SpawnEnemies();
+        SpawnGoldenCandle();
 
         var timer = new Timer(1000);
         timer.Elapsed += new ElapsedEventHandler(GameLoop);
@@ -183,10 +191,16 @@
         return result;
     }
 
-    private Point GenerateRandomPoint()
+    private Point GenerateRandomPoint(bool randomHighLocation = false)
     {
         int h = 0;
         int w = 0;
+
+        if(randomHighLocation)
+        {
+            h = HEIGHT - 25;
+            w = WIDTH - 25;
+        }
 
         do
         {
@@ -195,7 +209,12 @@
         }
         // We are only checking to see if the tile is a wall and now if we
         // already placed some other object. FIX ME LATER!
-        while (gameMap[h, w] == 1);
+        while (gameMap[h, w] == 1 ||
+            CoinLocations.Any(z => z.Location.X == w && z.Location.Y == h) ||
+            PotionLocations.Any(z => z.Location.X == w && z.Location.Y == h) ||
+            TreasureChestLocations.Any(z => z.Location.X == w && z.Location.Y == h) ||
+            EnemyLocations.Any(z => z.Location.X == w && z.Location.Y == h) ||
+            (PlayerLocation.X == w && PlayerLocation.Y == h));
 
         return new Point(w, h);
     }
@@ -267,6 +286,16 @@
         }
     }
 
+    private void SpawnGoldenCandle()
+    {
+        GoldenCandle = new Entity
+        {
+            Location = GenerateRandomPoint(true),
+            EntityType = EntityType.Pickup,            
+            Id = 100
+        };
+    }
+
     private void GameLoop(object source, ElapsedEventArgs e)
     {
         // TODO: Do some game updates here...
@@ -300,19 +329,19 @@
             var direction = random.Next(0,4);
             Point loc = new Point(enemy.Location.X, enemy.Location.Y);
 
-            if(direction == 0 && IsTileWalkable(enemy.Location.X, enemy.Location.Y, Movement.UP))
+            if(direction == 0 && IsTileWalkable(enemy.Location.X, enemy.Location.Y, Movement.UP, WhoAmI.Enemy))
             {                
                 loc.Y -= 1;
             }
-            else if(direction == 1 && IsTileWalkable(enemy.Location.X, enemy.Location.Y, Movement.DOWN)) 
+            else if(direction == 1 && IsTileWalkable(enemy.Location.X, enemy.Location.Y, Movement.DOWN, WhoAmI.Enemy)) 
             {
                 loc.Y += 1;
             }
-            else if(direction == 2 && IsTileWalkable(enemy.Location.X, enemy.Location.Y, Movement.LEFT)) 
+            else if(direction == 2 && IsTileWalkable(enemy.Location.X, enemy.Location.Y, Movement.LEFT, WhoAmI.Enemy)) 
             {
                 loc.X -= 1;
             }
-            else if(direction == 3 && IsTileWalkable(enemy.Location.X, enemy.Location.Y, Movement.RIGHT)) 
+            else if(direction == 3 && IsTileWalkable(enemy.Location.X, enemy.Location.Y, Movement.RIGHT, WhoAmI.Enemy)) 
             {
                 loc.X += 1;
             }
@@ -325,7 +354,8 @@
     {
         var coin = CoinLocations.FirstOrDefault(c => c.Location.X == PlayerLocation.X && c.Location.Y == PlayerLocation.Y);
         var potion = PotionLocations.FirstOrDefault(p => p.Location.X == PlayerLocation.X && p.Location.Y == PlayerLocation.Y);
-        var treasureChest = TreasureChests.FirstOrDefault(t => t.Location.X == PlayerLocation.X && t.Location.Y == PlayerLocation.Y);
+        var treasureChest = TreasureChestLocations.FirstOrDefault(t => t.Location.X == PlayerLocation.X && t.Location.Y == PlayerLocation.Y);
+        var goldenCandle = GoldenCandle.Location.X == PlayerLocation.X && GoldenCandle.Location.Y == PlayerLocation.Y;
 
         if (coin != null)
         {
@@ -354,15 +384,20 @@
 
             PlayerScore += 10;
 
-            TreasureChests.Remove(treasureChest);
+            TreasureChestLocations.Remove(treasureChest);
         }
-        
+        else if (goldenCandle)
+        {
+            PlayerScore += 10000;
+            WinLoseMessage = "YOU WIN!!!";
+        }
+
         MoveEnemies();
         
-        lightMap = RB_FOV();
+        //lightMap = RB_FOV();
     }
 
-    private bool IsTileWalkable(int x, int y, Movement? movementDirection)
+    private bool IsTileWalkable(int x, int y, Movement? movementDirection, WhoAmI whoAmI)
     {
         if(movementDirection == null) return false;
 
@@ -386,14 +421,14 @@
             );
         };
         
-        Func<int, int, List<Entity>, TileWalkableInfo> entityLocationTraversable = (int _x, int _y, List<Entity> locations) => 
+        Func<int, int, List<Entity>, WhoAmI, TileWalkableInfo> entityLocationTraversable = (int _x, int _y, List<Entity> locations, WhoAmI whoAmI) => 
         {
             var e =  locations.FirstOrDefault(l => (movementDirection == Movement.UP && l.Location.Y == _y - 1 && l.Location.X == _x) ||
                                       (movementDirection == Movement.DOWN && l.Location.Y == _y + 1 && l.Location.X == _x) ||
                                       (movementDirection == Movement.LEFT && l.Location.Y == _y && l.Location.X == _x - 1) ||
                                       (movementDirection == Movement.RIGHT && l.Location.Y == _y && l.Location.X == _x + 1));
 
-            if(e != null)
+            if(e != null && (e.EntityType == EntityType.Enemy || whoAmI == WhoAmI.Enemy))
             {
                 return new TileWalkableInfo
                 {
@@ -415,7 +450,7 @@
         // we are going to initiate an attack sequence here if the location is an enemy
         // we want to refactor this so that we have more information about tiles when we
         // want to attempt to walk onto them
-        var enemy = entityLocationTraversable(x, y, EnemyLocations);
+        var enemy = entityLocationTraversable(x, y, EnemyLocations, whoAmI);
 
         if(!enemy.Walkable && isPlayer)
         {
@@ -434,7 +469,10 @@
             }
         }
         
-        return tileGameMapTraversable(x, y, 1 /* Wall */) &&            
+        return tileGameMapTraversable(x, y, 1 /* Wall */) &&
+               entityLocationTraversable(x, y, CoinLocations, whoAmI).Walkable &&
+               entityLocationTraversable(x, y, PotionLocations, whoAmI).Walkable &&
+               entityLocationTraversable(x, y, TreasureChestLocations, whoAmI).Walkable &&
                enemy.Walkable;
     }
 
@@ -499,7 +537,7 @@
                     var treasureChestLocation = new Point(enemy.Location.X, enemy.Location.Y);
                     
                     EnemyLocations.Remove(enemy);
-                    TreasureChests.Add(new Entity
+                    TreasureChestLocations.Add(new Entity
                     {
                         Id = 20,
                         Location = treasureChestLocation,
@@ -520,7 +558,7 @@
     {
         var movementDirection = GetMovementDirection(args);
 
-        if(!IsTileWalkable(PlayerLocation.X, PlayerLocation.Y, movementDirection)) return;
+        if(!IsTileWalkable(PlayerLocation.X, PlayerLocation.Y, movementDirection, WhoAmI.Player)) return;
         
         if (movementDirection == Movement.UP)
         {
@@ -552,8 +590,8 @@
         if (x >= WIDTH) x = WIDTH - 1;
         if (y >= HEIGHT) y = HEIGHT - 1;
 
-        if (@lightMap[y, x] == 2)
-        {
+        //if (@lightMap[y, x] == 2)
+        //{
             if (CoinLocations.Any(c => c.Location.X == x && c.Location.Y == y))
             {
                 return "coin";
@@ -564,9 +602,14 @@
                 return "potion";
             }
 
-            if (TreasureChests.Any(t => t.Location.X == x && t.Location.Y == y))
+            if (TreasureChestLocations.Any(t => t.Location.X == x && t.Location.Y == y))
             {
                 return "treasure-chest";
+            }
+
+            if(GoldenCandle.Location.X == x && GoldenCandle.Location.Y == y)
+            {
+                return "golden-candle";
             }
 
             var enemy = EnemyLocations.FirstOrDefault(e => e.Location.X == x && e.Location.Y == y);
@@ -585,7 +628,7 @@
             {
                 return "grass";
             }
-        }
+        //}
 
         return "hidden";
     }
