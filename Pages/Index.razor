@@ -10,11 +10,13 @@
 
 <div tabindex="0" class="container-fluid game-field" @onkeydown=KeyDown @ref="gameFieldDiv">
     <div class="row justify-content-center game-info">
-        <div>Health: @PlayerHealth</div>
-        &nbsp;|&nbsp;
-        <div>Score: @PlayerScore</div>
-        &nbsp;|&nbsp;
-        <div>Enemies Killed: @PlayerEnemiesKilled</div>
+        <div>Health: @PlayerHealth</div>        
+        <div>&nbsp;|&nbsp;Score: @PlayerScore</div>
+        <div>&nbsp;|&nbsp;Enemies Killed: @PlayerEnemiesKilled</div>
+        @if(EnemyStats != string.Empty)
+        {            
+            <div class="enemy-stats">&nbsp;|&nbsp;Enemy [ @EnemyStats ]</div>
+        }        
     </div>
     @if(WinLoseMessage == string.Empty)
     {
@@ -86,6 +88,7 @@
     }
 
     private string WinLoseMessage { get; set; } = string.Empty;
+    private string EnemyStats { get; set; } = string.Empty;    
     private Point PlayerLocation;
     private int PlayerHealth = 30;
     private int PlayerScore = 0;
@@ -412,6 +415,10 @@
         {
             InitiateAttackSequence(enemy.Location.X, enemy.Location.Y);
         }
+        else if (EnemyStats != string.Empty)
+        {
+            EnemyStats = string.Empty;
+        }
 
         return tileGameMapTraversable(x, y, 1 /* Wall */) &&            
                enemy.Walkable;
@@ -439,11 +446,15 @@
 
             if(enemyStatsComponent != null)
             {
+                EnemyStats = $"Health: {enemyStatsComponent.Health} | Attack: {enemyStatsComponent.Attack}";                
+
                 var playerCriticalStrike = random.Next(0, 100) <= 20;
                 var enemyCriticalStrike = random.Next(0, 100) <= 20; 
 
                 if(playerCriticalStrike) {
-                    enemyStatsComponent.Health -= PlayerAttack + 2 * 2;                       
+                    enemyStatsComponent.Health -= PlayerAttack + 2 * 2;
+
+                    EnemyStats = $"Health: {enemyStatsComponent.Health} | Attack: {enemyStatsComponent.Attack} | CRITICAL STRIKE!!!";
                 }
                 else
                 {
@@ -460,6 +471,7 @@
 
                 if(enemyStatsComponent.Health <= 0) 
                 {
+                    EnemyStats = string.Empty;
                     PlayerEnemiesKilled += 1;
 
                     var treasureChestLocation = new Point(enemy.Location.X, enemy.Location.Y);
@@ -474,7 +486,7 @@
                 }
 
                 if(PlayerHealth <= 0)
-                {
+                {                    
                     PlayerHealth = 0;
                     WinLoseMessage = "You ded son!";             
                 }
