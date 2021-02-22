@@ -202,8 +202,7 @@
             h = random.Next(0, HEIGHT - 1);
             w = random.Next(0, WIDTH - 1);
         }
-        // We are only checking to see if the tile is a wall and now if we
-        // already placed some other object. FIX ME LATER!
+
         while (gameMap[h, w] == 1 ||
             CoinLocations.Any(z => z.Location.X == w && z.Location.Y == h) ||
             PotionLocations.Any(z => z.Location.X == w && z.Location.Y == h) ||
