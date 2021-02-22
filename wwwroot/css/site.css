@@ -74,6 +74,10 @@ a, .btn-link {
     font-size: 24px !important;
 }
 
+.ded-info {
+    font-size: 64px !important;
+}
+
 .wall {
     background: url('/tileset2.png') 0 0;
     height: 24px;
