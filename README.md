@@ -6,6 +6,24 @@ working!
 
 All game code is in `Index.razor`,,, don't @ me...
 
+There are a lot of areas that can be improved.
+
+Features:
+
+- Scrollable map
+- Player can walk over map and is kept inside via collision detection with wall
+- Player can pick up items such as Health gems, coins and treasure chests
+- Player can attack enemies (combat information is displayed in hud)
+- Player can win by obtaining the golden candle
+
+Not Yet Implemented:
+
+- Stairs to other levels (tileset has stairs tiles)
+- Enemy AI (enemies just roam freely around)
+- Level progression (some way to increase attack power)
+
+## Screenshots
+
 ![New](screenshots/new-tileset.png)
 
 ![Old](screenshots/demo.png)
@@ -26,7 +44,7 @@ All game code is in `Index.razor`,,, don't @ me...
 
 Frank Hale &lt;frankhaledevelops@gmail.com&gt;
 
-21 Feb 2021
+23 Feb 2021
 
 ## License
 
